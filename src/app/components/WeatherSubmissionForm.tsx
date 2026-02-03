@@ -396,10 +396,10 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
         setIsLoadingLocation(false);
       },
       (error) => {
-        // Handle geolocation errors
+        // Handle geolocation errors - all errors default to Davao City
         console.warn('Geolocation error:', error.code, error.message);
         
-        // Default to Davao City for all errors (permission denied, unavailable, timeout)
+        // Default to Davao City for all errors
         const davaoCityCenter = { lat: 7.070136, lng: 125.608519 };
         setFormData(prev => ({
           ...prev,
@@ -412,15 +412,15 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
           onLocationChange(davaoCityCenter.lat, davaoCityCenter.lng);
         }
 
-        // Set appropriate error message
-        if (error.code === 1) {
-          setLocationError('Location permission denied. Defaulting to Davao City.');
-        } else if (error.code === 2) {
-          setLocationError('Location unavailable. Defaulting to Davao City.');
-        } else if (error.code === 3) {
-          setLocationError('Location timeout. Defaulting to Davao City.');
-        }
+        // Set appropriate error message based on error code
+        // Error codes: 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+        const errorMessages: { [key: number]: string } = {
+          1: 'Location access denied. Using Davao City as default.',
+          2: 'Location unavailable. Using Davao City as default.',
+          3: 'Location request timed out. Using Davao City as default.',
+        };
         
+        setLocationError(errorMessages[error.code] || 'Location error. Using Davao City as default.');
         setIsLoadingLocation(false);
       },
       {

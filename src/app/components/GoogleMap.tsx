@@ -33,84 +33,38 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
 
   useEffect(() => {
     // Check if script is already in the DOM
-    const existingScript = document.querySelector('script[src*=\"maps.googleapis.com\"]');
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
     
-    // Check if Google Maps is already loaded
-    if (window.google && window.google.maps && window.google.maps.Map) {
-      setIsLoaded(true);
-      scriptLoadedRef.current = true;
-      // Small delay to ensure DOM is ready
-      setTimeout(() => initializeMap(), 100);
+    if (existingScript) {
+      // Script already exists, wait for it to load
+      if (window.google && window.google.maps) {
+        setIsLoaded(true);
+      } else {
+        existingScript.addEventListener('load', () => setIsLoaded(true));
+      }
       return;
     }
 
-    // If script exists but Maps not loaded yet, wait for it
-    if (existingScript) {
-      scriptLoadedRef.current = true;
-      const checkLoaded = setInterval(() => {
-        if (window.google && window.google.maps && window.google.maps.Map) {
-          clearInterval(checkLoaded);
-          setIsLoaded(true);
-          setTimeout(() => initializeMap(), 100);
-        }
-      }, 100);
-      
-      setTimeout(() => {
-        clearInterval(checkLoaded);
-        if (!isLoaded) {
-          setLoadError('Timeout loading Google Maps. Check your API key restrictions.');
-        }
-      }, 10000);
-      
-      return () => clearInterval(checkLoaded);
-    }
-
-    // Prevent multiple script loads
-    if (scriptLoadedRef.current) return;
-    scriptLoadedRef.current = true;
-
-    // Create unique callback name
-    const callbackName = `initMap_${Date.now()}`;
-    
-    // Define callback
-    (window as any)[callbackName] = () => {
-      setIsLoaded(true);
-      setTimeout(() => initializeMap(), 100);
-      // Cleanup callback after use
-      delete (window as any)[callbackName];
-    };
-
-    // Define error callback for API key issues
-    const errorCallbackName = `gm_authFailure_${Date.now()}`;
-    (window as any).gm_authFailure = () => {
-      setLoadError('Google Maps API Key Error: Check if your API key is valid and domain is authorized.');
-      console.error('Google Maps authentication failed. Please check:');
-      console.error('1. API key is valid');
-      console.error('2. Your current domain is added to API restrictions');
-      console.error('3. Maps JavaScript API is enabled');
-      delete (window as any)[callbackName];
-    };
-
-    // Load Google Maps script
+    // Create and inject the Google Maps script with async loading
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=${callbackName}`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async&libraries=marker`;
     script.async = true;
     script.defer = true;
-    script.onerror = () => {
-      setLoadError('Failed to load Google Maps script. Check your network connection.');
-      console.error('Failed to load Google Maps script');
-      delete (window as any)[callbackName];
-    };
-    
+    script.onload = () => setIsLoaded(true);
+    script.onerror = () => setLoadError('Failed to load Google Maps');
     document.head.appendChild(script);
-
-    return () => {
-      // Cleanup only the callback, keep script for other components
-      if ((window as any)[callbackName]) {
-        delete (window as any)[callbackName];
-      }
-    };
   }, [apiKey]);
+
+  // Initialize map once script is loaded
+  useEffect(() => {
+    if (isLoaded && !loadError && !mapInstanceRef.current) {
+      // Add a small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        initializeMap();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoaded, loadError]);
 
   // Update user marker when location changes
   useEffect(() => {
@@ -387,14 +341,19 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
       </div>
       
       {/* My Location Button - Below the map */}
-      {hasUserLocation && isLoaded && !loadError && (
+      {isLoaded && !loadError && (
         <button
           onClick={recenterToUserLocation}
-          className="mt-4 w-full bg-white hover:bg-gray-50 text-gray-700 py-3 px-4 rounded-lg shadow-md transition-all hover:shadow-lg flex items-center justify-center gap-2 font-medium"
-          title="Go to my location"
+          disabled={!hasUserLocation}
+          className={`mt-4 w-full py-3 px-4 rounded-lg shadow-md transition-all hover:shadow-lg flex items-center justify-center gap-2 font-medium ${
+            hasUserLocation 
+              ? 'bg-white hover:bg-gray-50 text-gray-700 cursor-pointer' 
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
+          }`}
+          title={hasUserLocation ? "Go to my location" : "Enable location first"}
         >
-          <Navigation size={20} className="text-blue-500" />
-          <span>Center to My Location</span>
+          <Navigation size={20} className={hasUserLocation ? "text-blue-500" : "text-gray-400"} />
+          <span>{hasUserLocation ? 'Center to My Location' : 'Location Not Available'}</span>
         </button>
       )}
       
