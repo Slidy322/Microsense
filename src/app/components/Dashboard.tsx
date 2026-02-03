@@ -201,7 +201,7 @@ export function Dashboard({ reports }: DashboardProps) {
       <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
         <h3 className="text-white font-semibold mb-4">Weather Reports - Last 7 Days</h3>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={weatherData} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
+          <BarChart data={weatherData} margin={{ left: 40, right: 10, top: 10, bottom: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
             <XAxis 
               dataKey="day" 
@@ -216,7 +216,7 @@ export function Dashboard({ reports }: DashboardProps) {
                 angle: -90, 
                 position: 'insideLeft', 
                 fill: 'rgba(255,255,255,0.7)',
-                offset: 10
+                style: { textAnchor: 'middle' }
               }}
             />
             <Tooltip
@@ -245,7 +245,7 @@ export function Dashboard({ reports }: DashboardProps) {
       <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
         <h3 className="text-white font-semibold mb-4">Community Activity Trend</h3>
         <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={activityTrend} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
+          <LineChart data={activityTrend} margin={{ left: 40, right: 10, top: 10, bottom: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
             <XAxis 
               dataKey="day" 
@@ -260,7 +260,7 @@ export function Dashboard({ reports }: DashboardProps) {
                 angle: -90, 
                 position: 'insideLeft', 
                 fill: 'rgba(255,255,255,0.7)',
-                offset: 10
+                style: { textAnchor: 'middle' }
               }}
             />
             <Tooltip
