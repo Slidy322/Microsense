@@ -339,7 +339,19 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange }: WeatherSub
     setLocationError('');
 
     if (!navigator.geolocation) {
-      setLocationError('Geolocation not supported on this device.');
+      // Silently fall back to Davao City center
+      const davaoCityCenter = { lat: 7.070200, lng: 125.607596 };
+      setFormData(prev => ({
+        ...prev,
+        lat: davaoCityCenter.lat,
+        lng: davaoCityCenter.lng,
+        location: 'Davao City (default)',
+      }));
+      
+      if (onLocationChange) {
+        onLocationChange(davaoCityCenter.lat, davaoCityCenter.lng);
+      }
+      
       setIsLoadingLocation(false);
       return;
     }
@@ -378,66 +390,36 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange }: WeatherSub
         setIsLoadingLocation(false);
       },
       (error) => {
-        let errorMessage = 'Unable to get your location. ';
+        // Silently handle all geolocation errors and fall back to Davao City
+        // This includes permissions policy errors, permission denied, etc.
+        console.warn('Geolocation error:', error.code, error.message);
         
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage += 'Permission denied. Please enable location access.';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage += 'Location information unavailable.';
-            break;
-          case error.TIMEOUT:
-            errorMessage += 'Location request timed out.';
-            break;
-          default:
-            errorMessage += 'An unknown error occurred.';
-            break;
-        }
-        
-        console.error('Geolocation error:', error.code, error.message);
-        setLocationError(errorMessage);
-        
-        // Set default to Davao City center if location fails
+        // Set default to Davao City center without showing error to user
         const davaoCityCenter = { lat: 7.070200, lng: 125.607596 };
         setFormData(prev => ({
           ...prev,
           lat: davaoCityCenter.lat,
           lng: davaoCityCenter.lng,
-          location: 'Davao City (default)',
+          location: 'Davao City',
         }));
         
         if (onLocationChange) {
           onLocationChange(davaoCityCenter.lat, davaoCityCenter.lng);
         }
         
+        // Only show error message if user manually clicks the button
+        // Don't show on automatic load
         setIsLoadingLocation(false);
       },
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 0   // FORCE fresh location every load
+        maximumAge: 0
       }
     );
 
-    // Watch position for a short time
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        // Update position if we get a better reading
-        const { latitude, longitude } = position.coords;
-        setFormData(prev => ({
-          ...prev,
-          lat: latitude,
-          lng: longitude,
-        }));
-        if (onLocationChange) {
-          onLocationChange(latitude, longitude);
-        }
-      },
-      () => {},
-      { enableHighAccuracy: true, maximumAge: 0 }
-    );
-    setTimeout(() => navigator.geolocation.clearWatch(watchId), 2000);
+    // Don't use watchPosition as it can cause permission issues
+    // Just use getCurrentPosition once
   };
 
   const reverseGeocode = async (lat: number, lng: number): Promise<string> => {

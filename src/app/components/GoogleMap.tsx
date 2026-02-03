@@ -19,30 +19,79 @@ export function GoogleMap({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', 
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const userMarkerRef = useRef<google.maps.Marker | null>(null);
   const weatherMarkersRef = useRef<Map<number, google.maps.Marker>>(new Map());
+  const scriptLoadedRef = useRef(false);
+  const initializationAttemptedRef = useRef(false);
   const [hasUserLocation, setHasUserLocation] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if Google Maps script is already loaded
-    if (window.google && window.google.maps) {
-      initializeMap();
+    // Check if script is already in the DOM
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    
+    // Check if Google Maps is already loaded
+    if (window.google && window.google.maps && window.google.maps.Map) {
+      setIsLoaded(true);
+      scriptLoadedRef.current = true;
+      // Small delay to ensure DOM is ready
+      setTimeout(() => initializeMap(), 100);
       return;
     }
 
-    // Load Google Maps script with async/defer and required libraries
+    // If script exists but Maps not loaded yet, wait for it
+    if (existingScript) {
+      scriptLoadedRef.current = true;
+      const checkLoaded = setInterval(() => {
+        if (window.google && window.google.maps && window.google.maps.Map) {
+          clearInterval(checkLoaded);
+          setIsLoaded(true);
+          setTimeout(() => initializeMap(), 100);
+        }
+      }, 100);
+      
+      setTimeout(() => {
+        clearInterval(checkLoaded);
+        if (!isLoaded) {
+          setLoadError('Timeout loading Google Maps');
+        }
+      }, 10000);
+      
+      return () => clearInterval(checkLoaded);
+    }
+
+    // Prevent multiple script loads
+    if (scriptLoadedRef.current) return;
+    scriptLoadedRef.current = true;
+
+    // Create unique callback name
+    const callbackName = `initMap_${Date.now()}`;
+    
+    // Define callback
+    (window as any)[callbackName] = () => {
+      setIsLoaded(true);
+      setTimeout(() => initializeMap(), 100);
+      // Cleanup callback after use
+      delete (window as any)[callbackName];
+    };
+
+    // Load Google Maps script
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async&libraries=marker`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=${callbackName}`;
     script.async = true;
     script.defer = true;
-    script.onload = () => {
-      initializeMap();
-    };
     script.onerror = () => {
-      console.error('Failed to load Google Maps script. Check your API key and restrictions.');
+      setLoadError('Failed to load Google Maps. Check your API key and network connection.');
+      console.error('Failed to load Google Maps script');
+      delete (window as any)[callbackName];
     };
+    
     document.head.appendChild(script);
 
     return () => {
-      // Cleanup if needed
+      // Cleanup only the callback, keep script for other components
+      if ((window as any)[callbackName]) {
+        delete (window as any)[callbackName];
+      }
     };
   }, [apiKey]);
 
@@ -56,16 +105,32 @@ export function GoogleMap({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', 
 
   // Update weather markers when reports change
   useEffect(() => {
-    if (mapInstanceRef.current) {
+    if (mapInstanceRef.current && isLoaded) {
       updateWeatherMarkers(markers);
     }
-  }, [markers]);
+  }, [markers, isLoaded]);
 
   const initializeMap = () => {
-    if (!mapRef.current) return;
+    // Prevent multiple initialization attempts
+    if (initializationAttemptedRef.current || mapInstanceRef.current) {
+      return;
+    }
+
+    if (!mapRef.current) {
+      console.warn('Map container not ready');
+      return;
+    }
+
+    // Verify Google Maps is fully loaded
+    if (!window.google || !window.google.maps || !window.google.maps.Map) {
+      console.warn('Google Maps API not fully loaded yet');
+      return;
+    }
+
+    initializationAttemptedRef.current = true;
 
     try {
-      const map = new google.maps.Map(mapRef.current, {
+      const map = new window.google.maps.Map(mapRef.current, {
         center: DAVAO_CITY_CENTER,
         zoom: 12,
         mapTypeControl: false,
@@ -74,52 +139,65 @@ export function GoogleMap({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', 
       });
 
       mapInstanceRef.current = map;
+      setLoadError(null);
 
-      // Don't add user marker initially - wait for actual location
-      // User marker will be added when location is detected
+      // Initialize weather markers if we have data
+      if (markers.length > 0) {
+        updateWeatherMarkers(markers);
+      }
 
     } catch (error) {
       console.error('Error initializing map:', error);
+      setLoadError('Failed to initialize map. Please refresh the page.');
+      initializationAttemptedRef.current = false;
     }
   };
 
   const updateUserMarker = (lat: number, lng: number) => {
-    if (!mapInstanceRef.current) return;
+    if (!mapInstanceRef.current || !window.google || !window.google.maps) return;
 
     const position = { lat, lng };
     
-    // Create or update red pin marker for user location
-    if (!userMarkerRef.current) {
-      // Create custom red pin icon
-      const redPinIcon = {
-        path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-        fillColor: '#EF4444',
-        fillOpacity: 1,
-        strokeColor: '#FFFFFF',
-        strokeWeight: 2,
-        scale: 2,
-        anchor: new google.maps.Point(12, 22),
-      };
+    try {
+      // Create or update red pin marker for user location
+      if (!userMarkerRef.current) {
+        // Create custom red pin icon
+        const redPinIcon = {
+          path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+          fillColor: '#EF4444',
+          fillOpacity: 1,
+          strokeColor: '#FFFFFF',
+          strokeWeight: 2,
+          scale: 2,
+          anchor: new window.google.maps.Point(12, 22),
+        };
 
-      userMarkerRef.current = new google.maps.Marker({
-        position: position,
-        map: mapInstanceRef.current,
-        title: 'You are here',
-        icon: redPinIcon,
-        zIndex: 1000,
-      });
-    } else {
-      userMarkerRef.current.setPosition(position);
+        userMarkerRef.current = new window.google.maps.Marker({
+          position: position,
+          map: mapInstanceRef.current,
+          title: 'You are here',
+          icon: redPinIcon,
+          zIndex: 1000,
+        });
+      } else {
+        userMarkerRef.current.setPosition(position);
+      }
+      
+      mapInstanceRef.current.setCenter(position);
+      mapInstanceRef.current.setZoom(15);
+    } catch (error) {
+      console.error('Error updating user marker:', error);
     }
-    
-    mapInstanceRef.current.setCenter(position);
-    mapInstanceRef.current.setZoom(15);
   };
 
   const recenterToUserLocation = () => {
     if (mapInstanceRef.current && userLat && userLng) {
-      mapInstanceRef.current.setCenter({ lat: userLat, lng: userLng });
-      mapInstanceRef.current.setZoom(15);
+      try {
+        mapInstanceRef.current.setCenter({ lat: userLat, lng: userLng });
+        mapInstanceRef.current.setZoom(15);
+      } catch (error) {
+        console.error('Error recentering map:', error);
+      }
     }
   };
 
@@ -148,7 +226,7 @@ export function GoogleMap({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', 
   };
 
   const updateWeatherMarkers = (weatherMarkers: Array<{ id: number; lat: number; lng: number; location: string; condition: string; note: string | null; created_at: string }>) => {
-    if (!mapInstanceRef.current) return;
+    if (!mapInstanceRef.current || !window.google || !window.google.maps) return;
 
     const currentMarkers = weatherMarkersRef.current;
     const ids = new Set(weatherMarkers.map(r => r.id));
@@ -156,52 +234,61 @@ export function GoogleMap({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', 
     // Remove markers that no longer exist
     for (const [id, marker] of currentMarkers.entries()) {
       if (!ids.has(id)) {
-        marker.setMap(null);
-        currentMarkers.delete(id);
+        try {
+          marker.setMap(null);
+          currentMarkers.delete(id);
+        } catch (error) {
+          console.warn('Error removing marker:', error);
+          currentMarkers.delete(id);
+        }
       }
     }
 
     // Add or update markers
     weatherMarkers.forEach((report) => {
       if (!currentMarkers.has(report.id)) {
-        // Create green circle icon for weather reports
-        const greenCircleIcon = {
-          path: google.maps.SymbolPath.CIRCLE,
-          fillColor: '#10B981',
-          fillOpacity: 0.9,
-          strokeColor: '#FFFFFF',
-          strokeWeight: 3,
-          scale: 12,
-        };
+        try {
+          // Create green circle icon for weather reports
+          const greenCircleIcon = {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            fillColor: '#10B981',
+            fillOpacity: 0.9,
+            strokeColor: '#FFFFFF',
+            strokeWeight: 3,
+            scale: 12,
+          };
 
-        const marker = new google.maps.Marker({
-          position: { lat: report.lat, lng: report.lng },
-          map: mapInstanceRef.current!,
-          title: report.condition,
-          icon: greenCircleIcon,
-          label: {
-            text: iconFor(report.condition),
-            fontSize: '18px',
-            color: '#FFFFFF',
-          },
-          zIndex: 100,
-        });
+          const marker = new window.google.maps.Marker({
+            position: { lat: report.lat, lng: report.lng },
+            map: mapInstanceRef.current!,
+            title: report.condition,
+            icon: greenCircleIcon,
+            label: {
+              text: iconFor(report.condition),
+              fontSize: '18px',
+              color: '#FFFFFF',
+            },
+            zIndex: 100,
+          });
 
-        const infoWindow = new google.maps.InfoWindow({
-          content: `
-            <div style="font-family:system-ui; font-size:14px; color: #1F2937; min-width: 120px;">
-              <div style="font-weight: bold; margin-bottom: 4px;">${iconFor(report.condition)} ${report.condition}</div>
-              <div style="opacity: 0.8; font-size: 12px; margin-bottom: 4px;">${timeAgo(report.created_at)}</div>
-              ${report.note ? `<div style="margin-top: 4px;">${report.note}</div>` : ''}
-            </div>
-          `,
-        });
+          const infoWindow = new window.google.maps.InfoWindow({
+            content: `
+              <div style="font-family:system-ui; font-size:14px; color: #1F2937; min-width: 120px;">
+                <div style="font-weight: bold; margin-bottom: 4px;">${iconFor(report.condition)} ${report.condition}</div>
+                <div style="opacity: 0.8; font-size: 12px; margin-bottom: 4px;">${timeAgo(report.created_at)}</div>
+                ${report.note ? `<div style="margin-top: 4px;">${report.note}</div>` : ''}
+              </div>
+            `,
+          });
 
-        marker.addListener('click', () => {
-          infoWindow.open({ anchor: marker, map: mapInstanceRef.current! });
-        });
+          marker.addListener('click', () => {
+            infoWindow.open({ anchor: marker, map: mapInstanceRef.current! });
+          });
 
-        currentMarkers.set(report.id, marker);
+          currentMarkers.set(report.id, marker);
+        } catch (error) {
+          console.warn('Error creating marker:', error);
+        }
       }
     });
 
@@ -219,17 +306,28 @@ export function GoogleMap({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', 
           ref={mapRef} 
           className="w-full h-[500px] md:h-[600px] rounded-lg overflow-hidden bg-gray-200"
         >
-          {/* Fallback content while map loads */}
-          <div className="w-full h-full flex items-center justify-center bg-blue-100">
-            <div className="text-center text-gray-600">
-              <MapPin size={48} className="mx-auto mb-2 opacity-50" />
-              <p>Loading Google Maps...</p>
+          {/* Fallback content while map loads or if error */}
+          {!isLoaded && !loadError && (
+            <div className="w-full h-full flex items-center justify-center bg-blue-100">
+              <div className="text-center text-gray-600">
+                <MapPin size={48} className="mx-auto mb-2 opacity-50 animate-pulse" />
+                <p>Loading Google Maps...</p>
+              </div>
             </div>
-          </div>
+          )}
+          {loadError && (
+            <div className="w-full h-full flex items-center justify-center bg-red-50">
+              <div className="text-center text-red-600 px-4">
+                <MapPin size={48} className="mx-auto mb-2 opacity-50" />
+                <p className="font-semibold mb-2">Map Loading Error</p>
+                <p className="text-sm">{loadError}</p>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* My Location Button */}
-        {hasUserLocation && (
+        {hasUserLocation && isLoaded && !loadError && (
           <button
             onClick={recenterToUserLocation}
             className="absolute bottom-6 right-6 bg-white hover:bg-gray-50 text-gray-700 p-3 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 z-10"
