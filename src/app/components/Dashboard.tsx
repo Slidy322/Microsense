@@ -201,7 +201,7 @@ export function Dashboard({ reports }: DashboardProps) {
       <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
         <h3 className="text-white font-semibold mb-4">Weather Reports - Last 7 Days</h3>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={weatherData}>
+          <BarChart data={weatherData} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
             <XAxis 
               dataKey="day" 
@@ -211,7 +211,13 @@ export function Dashboard({ reports }: DashboardProps) {
             <YAxis 
               stroke="rgba(255,255,255,0.7)"
               style={{ fontSize: '12px' }}
-              label={{ value: 'Number of Reports', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.7)' }}
+              label={{ 
+                value: 'Number of Reports', 
+                angle: -90, 
+                position: 'insideLeft', 
+                fill: 'rgba(255,255,255,0.7)',
+                offset: 10
+              }}
             />
             <Tooltip
               contentStyle={{
@@ -239,7 +245,7 @@ export function Dashboard({ reports }: DashboardProps) {
       <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
         <h3 className="text-white font-semibold mb-4">Community Activity Trend</h3>
         <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={activityTrend}>
+          <LineChart data={activityTrend} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
             <XAxis 
               dataKey="day" 
@@ -249,7 +255,13 @@ export function Dashboard({ reports }: DashboardProps) {
             <YAxis 
               stroke="rgba(255,255,255,0.7)"
               style={{ fontSize: '12px' }}
-              label={{ value: 'Reports Per Day', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.7)' }}
+              label={{ 
+                value: 'Reports Per Day', 
+                angle: -90, 
+                position: 'insideLeft', 
+                fill: 'rgba(255,255,255,0.7)',
+                offset: 10
+              }}
             />
             <Tooltip
               contentStyle={{

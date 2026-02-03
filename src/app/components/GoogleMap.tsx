@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import { MapPin, Navigation } from 'lucide-react';
 
 interface GoogleMapProps {
@@ -8,13 +8,17 @@ interface GoogleMapProps {
   markers?: Array<{ id: number; lat: number; lng: number; location: string; condition: string; note: string | null; created_at: string }>;
 }
 
+export interface GoogleMapRef {
+  recenterToUser: () => void;
+}
+
 // Davao City coordinates
 const DAVAO_CITY_CENTER = {
   lat: 7.070200,
   lng: 125.607596
 };
 
-export function GoogleMap({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', userLat, userLng, markers = [] }: GoogleMapProps) {
+export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', userLat, userLng, markers = [] }, ref) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const userMarkerRef = useRef<google.maps.Marker | null>(null);
@@ -306,6 +310,10 @@ export function GoogleMap({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', 
     weatherMarkersRef.current = currentMarkers;
   };
 
+  useImperativeHandle(ref, () => ({
+    recenterToUser: recenterToUserLocation
+  }));
+
   return (
     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 h-full">
       <h3 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
@@ -360,7 +368,7 @@ export function GoogleMap({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', 
       </div>
     </div>
   );
-}
+});
 
 // Extend Window interface for TypeScript
 declare global {

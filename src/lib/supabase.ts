@@ -13,6 +13,7 @@ export interface WeatherReport {
   lng: number;
   condition: string;
   note: string | null;
+  user_id?: string;
 }
 
 export async function supabaseFetch(path: string, options: RequestInit = {}) {
@@ -32,8 +33,20 @@ export async function supabaseFetch(path: string, options: RequestInit = {}) {
 }
 
 export async function loadReports(): Promise<WeatherReport[]> {
+  // Only load reports from the last 7 days
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const sevenDaysAgoISO = sevenDaysAgo.toISOString();
+  
   const res = await supabaseFetch(
-    `/rest/v1/reports?select=id,created_at,lat,lng,condition,note&order=created_at.desc&limit=100`
+    `/rest/v1/reports?select=id,created_at,lat,lng,condition,note,user_id&created_at=gte.${sevenDaysAgoISO}&order=created_at.desc&limit=500`
+  );
+  return res.json();
+}
+
+export async function loadUserReports(userId: string): Promise<WeatherReport[]> {
+  const res = await supabaseFetch(
+    `/rest/v1/reports?select=id,created_at,lat,lng,condition,note,user_id&user_id=eq.${userId}&order=created_at.desc&limit=100`
   );
   return res.json();
 }

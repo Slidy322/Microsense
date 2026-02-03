@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Cloud, Info, Home, History, Settings as SettingsIcon, BarChart3 } from 'lucide-react';
 import { WeatherSubmissionForm } from '@/app/components/WeatherSubmissionForm';
-import { GoogleMap } from '@/app/components/GoogleMap';
+import { GoogleMap, GoogleMapRef } from '@/app/components/GoogleMap';
 import { UserWeatherReports } from '@/app/components/UserWeatherReports';
 import { UserHistory } from '@/app/components/UserHistory';
 import { Settings } from '@/app/components/Settings';
 import { Dashboard } from '@/app/components/Dashboard';
 import { LoginForm } from '@/app/components/LoginForm';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
-import { loadReports, postReport, WeatherReport as SupabaseWeatherReport } from '@/lib/supabase';
+import { loadReports, loadUserReports, postReport, WeatherReport as SupabaseWeatherReport } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
 interface WeatherReport extends SupabaseWeatherReport {
@@ -74,12 +74,47 @@ export default function App() {
     }
   };
 
+  const fetchUserReports = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const reports = await loadUserReports(user.id);
+      
+      // Add location info to each report using reverse geocoding
+      const reportsWithLocation = await Promise.all(
+        reports.map(async (report) => {
+          try {
+            const location = await reverseGeocode(report.lat, report.lng);
+            return { ...report, location };
+          } catch {
+            return { 
+              ...report, 
+              location: `${report.lat.toFixed(4)}, ${report.lng.toFixed(4)}` 
+            };
+          }
+        })
+      );
+
+      setUserReports(reportsWithLocation);
+    } catch (error) {
+      console.error('Failed to load user reports:', error);
+    }
+  };
+
   // Load reports on mount and every 30 seconds
   useEffect(() => {
     if (user) {
       fetchReports();
       const interval = setInterval(fetchReports, 30000);
       return () => clearInterval(interval);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Load user reports on mount
+  useEffect(() => {
+    if (user) {
+      fetchUserReports();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -125,6 +160,7 @@ export default function App() {
       
       // Reload reports
       await fetchReports();
+      await fetchUserReports();
     } catch (error) {
       console.error('Failed to post report:', error);
       setStatusMessage('Failed to post. Check console.');
@@ -254,7 +290,7 @@ export default function App() {
           )}
 
           {activeTab === 'history' && (
-            <UserHistory userReports={weatherReports} />
+            <UserHistory userReports={userReports} />
           )}
 
           {activeTab === 'settings' && (

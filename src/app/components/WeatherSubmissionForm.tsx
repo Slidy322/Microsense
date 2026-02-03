@@ -19,6 +19,7 @@ interface WeatherData {
 interface WeatherSubmissionFormProps {
   onSubmit: (data: WeatherData) => void;
   onLocationChange?: (lat: number, lng: number) => void;
+  onRecenterMap?: () => void;
 }
 
 // Define what sliders show for each weather condition
@@ -312,7 +313,7 @@ const weatherSliderConfigs: Record<string, {
   }
 };
 
-export function WeatherSubmissionForm({ onSubmit, onLocationChange }: WeatherSubmissionFormProps) {
+export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMap }: WeatherSubmissionFormProps) {
   const [formData, setFormData] = useState<WeatherData>({
     condition: 'Sunny',
     notes: '',
