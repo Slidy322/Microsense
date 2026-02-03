@@ -25,6 +25,7 @@ export default function App() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [statusMessage, setStatusMessage] = useState('Loading reports...');
   const mapRef = useRef<GoogleMapRef>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
     try {
@@ -178,6 +179,14 @@ export default function App() {
     if (mapRef.current) {
       mapRef.current.centerOnLocation(lat, lng);
     }
+    
+    // On mobile, scroll to the map
+    if (mapContainerRef.current && window.innerWidth < 1024) {
+      mapContainerRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }
   };
 
   // Prepare markers for map
@@ -268,7 +277,7 @@ export default function App() {
               {/* Main Grid Layout */}
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Right Column - Google Maps (First on mobile, right on desktop) */}
-                <div className="lg:col-span-3 order-1 lg:order-2">
+                <div className="lg:col-span-3 order-1 lg:order-2" ref={mapContainerRef}>
                   <GoogleMap 
                     apiKey="AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I"
                     userLat={userLocation?.lat}

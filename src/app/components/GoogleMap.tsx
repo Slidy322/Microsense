@@ -6,6 +6,7 @@ interface GoogleMapProps {
   userLat?: number;
   userLng?: number;
   markers?: Array<{ id: number; lat: number; lng: number; location: string; condition: string; note: string | null; created_at: string }>;
+  containerRef?: React.RefObject<HTMLDivElement>;
 }
 
 export interface GoogleMapRef {
@@ -19,7 +20,7 @@ const DAVAO_CITY_CENTER = {
   lng: 125.608519
 };
 
-export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', userLat, userLng, markers = [] }, ref) => {
+export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', userLat, userLng, markers = [], containerRef }, ref) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const userMarkerRef = useRef<google.maps.Marker | null>(null);
@@ -343,11 +344,15 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
       {/* Add global style for InfoWindow close button */}
       <style>{`
         .gm-ui-hover-effect {
-          background: #1F2937 !important;
           opacity: 1 !important;
+          width: 28px !important;
+          height: 28px !important;
         }
         .gm-ui-hover-effect > img {
-          filter: brightness(0) invert(1);
+          filter: drop-shadow(0 0 2px rgba(0,0,0,0.8)) brightness(0) invert(1);
+        }
+        .gm-style-iw-d {
+          overflow: hidden !important;
         }
       `}</style>
       
@@ -379,18 +384,20 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
             </div>
           )}
         </div>
-        
-        {/* My Location Button - Repositioned to left side to avoid overlap */}
-        {hasUserLocation && isLoaded && !loadError && (
-          <button
-            onClick={recenterToUserLocation}
-            className="absolute bottom-6 left-6 bg-white hover:bg-gray-50 text-gray-700 p-3 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 z-10 flex items-center gap-2"
-            title="Go to my location"
-          >
-            <Navigation size={20} className="text-blue-500" />
-          </button>
-        )}
       </div>
+      
+      {/* My Location Button - Below the map */}
+      {hasUserLocation && isLoaded && !loadError && (
+        <button
+          onClick={recenterToUserLocation}
+          className="mt-4 w-full bg-white hover:bg-gray-50 text-gray-700 py-3 px-4 rounded-lg shadow-md transition-all hover:shadow-lg flex items-center justify-center gap-2 font-medium"
+          title="Go to my location"
+        >
+          <Navigation size={20} className="text-blue-500" />
+          <span>Center to My Location</span>
+        </button>
+      )}
+      
       <div className="mt-3 flex items-center gap-4 text-sm text-white/80">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-white"></div>
