@@ -52,7 +52,7 @@ export function GoogleMap({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', 
       setTimeout(() => {
         clearInterval(checkLoaded);
         if (!isLoaded) {
-          setLoadError('Timeout loading Google Maps');
+          setLoadError('Timeout loading Google Maps. Check your API key restrictions.');
         }
       }, 10000);
       
@@ -74,13 +74,24 @@ export function GoogleMap({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', 
       delete (window as any)[callbackName];
     };
 
+    // Define error callback for API key issues
+    const errorCallbackName = `gm_authFailure_${Date.now()}`;
+    (window as any).gm_authFailure = () => {
+      setLoadError('Google Maps API Key Error: Check if your API key is valid and domain is authorized.');
+      console.error('Google Maps authentication failed. Please check:');
+      console.error('1. API key is valid');
+      console.error('2. Your current domain is added to API restrictions');
+      console.error('3. Maps JavaScript API is enabled');
+      delete (window as any)[callbackName];
+    };
+
     // Load Google Maps script
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=${callbackName}`;
     script.async = true;
     script.defer = true;
     script.onerror = () => {
-      setLoadError('Failed to load Google Maps. Check your API key and network connection.');
+      setLoadError('Failed to load Google Maps script. Check your network connection.');
       console.error('Failed to load Google Maps script');
       delete (window as any)[callbackName];
     };
