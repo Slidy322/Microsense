@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#3B82F6"/>
+  <circle cx="256" cy="180" r="70" fill="#FCD34D"/>
+  <path d="M 100 320 Q 150 260, 200 320 T 300 320 T 400 320" stroke="#FFFFFF" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <text x="256" y="430" font-family="Arial, sans-serif" font-size="60" font-weight="bold" fill="#FFFFFF" text-anchor="middle">DWM</text>
+</svg>
