@@ -6,13 +6,16 @@ interface WeatherReport {
   condition: string;
   note: string | null;
   created_at: string;
+  lat: number;
+  lng: number;
 }
 
 interface UserWeatherReportsProps {
   reports: WeatherReport[];
+  onReportClick?: (lat: number, lng: number) => void;
 }
 
-export function UserWeatherReports({ reports }: UserWeatherReportsProps) {
+export function UserWeatherReports({ reports, onReportClick }: UserWeatherReportsProps) {
   const getConditionIcon = (condition: string) => {
     const iconMap: { [key: string]: string } = {
       'Sunny': '☀️',
@@ -53,7 +56,9 @@ export function UserWeatherReports({ reports }: UserWeatherReportsProps) {
           reports.map((report) => (
             <div
               key={report.id}
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/15 transition-all"
+              className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/20 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+              onClick={() => onReportClick && onReportClick(report.lat, report.lng)}
+              title="Click to view on map"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">

@@ -10,12 +10,13 @@ interface GoogleMapProps {
 
 export interface GoogleMapRef {
   recenterToUser: () => void;
+  centerOnLocation: (lat: number, lng: number) => void;
 }
 
 // Davao City coordinates
 const DAVAO_CITY_CENTER = {
-  lat: 7.070200,
-  lng: 125.607596
+  lat: 7.070136,
+  lng: 125.608519
 };
 
 export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I', userLat, userLng, markers = [] }, ref) => {
@@ -31,7 +32,7 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
 
   useEffect(() => {
     // Check if script is already in the DOM
-    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    const existingScript = document.querySelector('script[src*=\"maps.googleapis.com\"]');
     
     // Check if Google Maps is already loaded
     if (window.google && window.google.maps && window.google.maps.Map) {
@@ -216,6 +217,17 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
     }
   };
 
+  const centerOnLocation = (lat: number, lng: number) => {
+    if (mapInstanceRef.current) {
+      try {
+        mapInstanceRef.current.setCenter({ lat, lng });
+        mapInstanceRef.current.setZoom(15);
+      } catch (error) {
+        console.error('Error centering map:', error);
+      }
+    }
+  };
+
   const iconFor = (condition: string): string => {
     const iconMap: { [key: string]: string } = {
       'Sunny': '☀️',
@@ -310,12 +322,35 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
     weatherMarkersRef.current = currentMarkers;
   };
 
+  // Expose recenter function to parent
   useImperativeHandle(ref, () => ({
-    recenterToUser: recenterToUserLocation
+    recenterToUser: () => {
+      if (mapInstanceRef.current && hasUserLocation && userLat && userLng) {
+        mapInstanceRef.current.setCenter({ lat: userLat, lng: userLng });
+        mapInstanceRef.current.setZoom(15);
+      }
+    },
+    centerOnLocation: (lat: number, lng: number) => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.setCenter({ lat, lng });
+        mapInstanceRef.current.setZoom(15);
+      }
+    }
   }));
 
   return (
     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 h-full">
+      {/* Add global style for InfoWindow close button */}
+      <style>{`
+        .gm-ui-hover-effect {
+          background: #1F2937 !important;
+          opacity: 1 !important;
+        }
+        .gm-ui-hover-effect > img {
+          filter: brightness(0) invert(1);
+        }
+      `}</style>
+      
       <h3 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
         <MapPin size={20} />
         Davao City - Weather Map
@@ -345,11 +380,11 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
           )}
         </div>
         
-        {/* My Location Button */}
+        {/* My Location Button - Repositioned to left side to avoid overlap */}
         {hasUserLocation && isLoaded && !loadError && (
           <button
             onClick={recenterToUserLocation}
-            className="absolute bottom-6 right-6 bg-white hover:bg-gray-50 text-gray-700 p-3 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 z-10"
+            className="absolute bottom-6 left-6 bg-white hover:bg-gray-50 text-gray-700 p-3 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 z-10 flex items-center gap-2"
             title="Go to my location"
           >
             <Navigation size={20} className="text-blue-500" />

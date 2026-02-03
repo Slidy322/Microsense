@@ -329,24 +329,28 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
   });
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [locationError, setLocationError] = useState('');
+  const [locationPermissionRequested, setLocationPermissionRequested] = useState(false);
 
   useEffect(() => {
-    // Automatically get location when component mounts
-    getCurrentLocation();
+    // Automatically request location permission when component mounts
+    if (!locationPermissionRequested) {
+      setLocationPermissionRequested(true);
+      requestLocationPermission();
+    }
   }, []);
 
-  const getCurrentLocation = () => {
+  const requestLocationPermission = () => {
     setIsLoadingLocation(true);
     setLocationError('');
 
     if (!navigator.geolocation) {
-      // Silently fall back to Davao City center
-      const davaoCityCenter = { lat: 7.070200, lng: 125.607596 };
+      // No geolocation support - default to Davao City
+      const davaoCityCenter = { lat: 7.070136, lng: 125.608519 };
       setFormData(prev => ({
         ...prev,
         lat: davaoCityCenter.lat,
         lng: davaoCityCenter.lng,
-        location: 'Davao City (default)',
+        location: 'Davao City',
       }));
       
       if (onLocationChange) {
@@ -357,11 +361,12 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
       return;
     }
 
+    // Request permission via geolocation API
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
         
-        // Update form data with coordinates
+        // Update form data with actual user coordinates
         setFormData(prev => ({
           ...prev,
           lat: latitude,
@@ -391,12 +396,11 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
         setIsLoadingLocation(false);
       },
       (error) => {
-        // Silently handle all geolocation errors and fall back to Davao City
-        // This includes permissions policy errors, permission denied, etc.
+        // Handle geolocation errors
         console.warn('Geolocation error:', error.code, error.message);
         
-        // Set default to Davao City center without showing error to user
-        const davaoCityCenter = { lat: 7.070200, lng: 125.607596 };
+        // Default to Davao City for all errors (permission denied, unavailable, timeout)
+        const davaoCityCenter = { lat: 7.070136, lng: 125.608519 };
         setFormData(prev => ({
           ...prev,
           lat: davaoCityCenter.lat,
@@ -407,9 +411,16 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
         if (onLocationChange) {
           onLocationChange(davaoCityCenter.lat, davaoCityCenter.lng);
         }
+
+        // Set appropriate error message
+        if (error.code === 1) {
+          setLocationError('Location permission denied. Defaulting to Davao City.');
+        } else if (error.code === 2) {
+          setLocationError('Location unavailable. Defaulting to Davao City.');
+        } else if (error.code === 3) {
+          setLocationError('Location timeout. Defaulting to Davao City.');
+        }
         
-        // Only show error message if user manually clicks the button
-        // Don't show on automatic load
         setIsLoadingLocation(false);
       },
       {
@@ -418,9 +429,6 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
         maximumAge: 0
       }
     );
-
-    // Don't use watchPosition as it can cause permission issues
-    // Just use getCurrentPosition once
   };
 
   const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
@@ -512,7 +520,7 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
             />
             <button
               type="button"
-              onClick={getCurrentLocation}
+              onClick={requestLocationPermission}
               disabled={isLoadingLocation}
               className="bg-white/30 hover:bg-white/40 backdrop-blur-sm text-white text-sm rounded-lg px-3 py-2 transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
             >

@@ -24,6 +24,7 @@ export default function App() {
   const [userReports, setUserReports] = useState<WeatherReport[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [statusMessage, setStatusMessage] = useState('Loading reports...');
+  const mapRef = useRef<GoogleMapRef>(null);
 
   const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
     try {
@@ -172,6 +173,13 @@ export default function App() {
     setUserLocation({ lat, lng });
   };
 
+  const handleReportClick = (lat: number, lng: number) => {
+    // Center the map on the clicked report location
+    if (mapRef.current) {
+      mapRef.current.centerOnLocation(lat, lng);
+    }
+  };
+
   // Prepare markers for map
   const mapMarkers = weatherReports.map(report => ({
     id: report.id,
@@ -266,6 +274,7 @@ export default function App() {
                     userLat={userLocation?.lat}
                     userLng={userLocation?.lng}
                     markers={mapMarkers}
+                    ref={mapRef}
                   />
                 </div>
 
@@ -280,7 +289,7 @@ export default function App() {
 
               {/* Bottom Section - Community Reports */}
               <div className="mt-6">
-                <UserWeatherReports reports={weatherReports} />
+                <UserWeatherReports reports={weatherReports} onReportClick={handleReportClick} />
               </div>
             </>
           )}
