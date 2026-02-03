@@ -424,9 +424,9 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
         setIsLoadingLocation(false);
       },
       {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
+        enableHighAccuracy: false, // Use WiFi/cellular for faster location (1-3 seconds vs 10-30 seconds with GPS)
+        timeout: 5000, // Reduced timeout to 5 seconds
+        maximumAge: 60000 // Allow cached location from last 60 seconds for instant results
       }
     );
   };
