@@ -94,6 +94,13 @@ export async function postReport(data: {
   condition: string;
   note: string | null;
 }) {
+  // Get current user - REQUIRED for posting
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('You must be logged in to post a weather report');
+  }
+  
   // Geocode the location once during submission
   const location = await reverseGeocode(data.lat, data.lng);
   
@@ -102,7 +109,8 @@ export async function postReport(data: {
     headers: { "Prefer": "return=minimal" },
     body: JSON.stringify({
       ...data,
-      location // Include location in the submission
+      location, // Include location in the submission
+      user_id: user.id // REQUIRED: Link report to user account
     })
   });
 }

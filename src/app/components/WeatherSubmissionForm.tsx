@@ -329,15 +329,11 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
   });
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [locationError, setLocationError] = useState('');
-  const [locationPermissionRequested, setLocationPermissionRequested] = useState(false);
 
   useEffect(() => {
-    // Automatically request location permission when component mounts
-    if (!locationPermissionRequested) {
-      setLocationPermissionRequested(true);
-      requestLocationPermission();
-    }
-  }, []);
+    // Automatically request location permission EVERY TIME component mounts
+    requestLocationPermission();
+  }, []); // Request location on every mount
 
   const requestLocationPermission = () => {
     setIsLoadingLocation(true);
