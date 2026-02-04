@@ -97,6 +97,7 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
   // Update user marker when location changes
   useEffect(() => {
     if (mapInstanceRef.current && userLat && userLng && userLat !== 0 && userLng !== 0) {
+      console.log('Updating user marker to:', userLat, userLng);
       updateUserMarker(userLat, userLng);
     }
   }, [userLat, userLng]);
@@ -158,10 +159,12 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
 
       console.log('Google Maps initialized successfully');
 
-      // If we already have user location, show it
+      // If we already have user location, show it immediately
       if (userLat && userLng && userLat !== 0 && userLng !== 0) {
+        console.log('Initial user location detected:', userLat, userLng);
         // Wait for map to be ready before adding marker
         window.google.maps.event.addListenerOnce(map, 'idle', () => {
+          console.log('Map idle, adding user marker');
           updateUserMarker(userLat, userLng);
         });
       }
