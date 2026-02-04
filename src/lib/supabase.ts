@@ -14,6 +14,31 @@ export interface WeatherReport {
   condition: string;
   note: string | null;
   user_id?: string;
+  location?: string; // Add location field
+}
+
+// Reverse geocode function (only used once during submission)
+async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`
+    );
+    const data = await response.json();
+    const address = data.address;
+    const parts = [];
+    
+    if (address.suburb || address.neighbourhood) {
+      parts.push(address.suburb || address.neighbourhood);
+    }
+    if (address.city || address.town || address.municipality) {
+      parts.push(address.city || address.town || address.municipality);
+    }
+    
+    return parts.join(', ') || data.display_name.split(',').slice(0, 2).join(',');
+  } catch (error) {
+    console.error('Geocoding failed:', error);
+    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  }
 }
 
 export async function supabaseFetch(path: string, options: RequestInit = {}) {
@@ -39,16 +64,28 @@ export async function loadReports(): Promise<WeatherReport[]> {
   const sevenDaysAgoISO = sevenDaysAgo.toISOString();
   
   const res = await supabaseFetch(
-    `/rest/v1/reports?select=id,created_at,lat,lng,condition,note,user_id&created_at=gte.${sevenDaysAgoISO}&order=created_at.desc&limit=500`
+    `/rest/v1/reports?select=id,created_at,lat,lng,condition,note,user_id,location&created_at=gte.${sevenDaysAgoISO}&order=created_at.desc&limit=500`
   );
-  return res.json();
+  const reports = await res.json();
+  
+  // Add fallback location for reports without location data
+  return reports.map((report: WeatherReport) => ({
+    ...report,
+    location: report.location || `${report.lat.toFixed(4)}, ${report.lng.toFixed(4)}`
+  }));
 }
 
 export async function loadUserReports(userId: string): Promise<WeatherReport[]> {
   const res = await supabaseFetch(
-    `/rest/v1/reports?select=id,created_at,lat,lng,condition,note,user_id&user_id=eq.${userId}&order=created_at.desc&limit=100`
+    `/rest/v1/reports?select=id,created_at,lat,lng,condition,note,user_id,location&user_id=eq.${userId}&order=created_at.desc&limit=100`
   );
-  return res.json();
+  const reports = await res.json();
+  
+  // Add fallback location for reports without location data
+  return reports.map((report: WeatherReport) => ({
+    ...report,
+    location: report.location || `${report.lat.toFixed(4)}, ${report.lng.toFixed(4)}`
+  }));
 }
 
 export async function postReport(data: {
@@ -57,9 +94,15 @@ export async function postReport(data: {
   condition: string;
   note: string | null;
 }) {
+  // Geocode the location once during submission
+  const location = await reverseGeocode(data.lat, data.lng);
+  
   await supabaseFetch(`/rest/v1/reports`, {
     method: "POST",
     headers: { "Prefer": "return=minimal" },
-    body: JSON.stringify(data)
+    body: JSON.stringify({
+      ...data,
+      location // Include location in the submission
+    })
   });
 }

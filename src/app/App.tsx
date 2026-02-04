@@ -27,49 +27,11 @@ export default function App() {
   const mapRef = useRef<GoogleMapRef>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
-  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`
-      );
-      const data = await response.json();
-      const address = data.address;
-      const parts = [];
-      
-      if (address.suburb || address.neighbourhood) {
-        parts.push(address.suburb || address.neighbourhood);
-      }
-      if (address.city || address.town || address.municipality) {
-        parts.push(address.city || address.town || address.municipality);
-      }
-      
-      return parts.join(', ') || data.display_name.split(',').slice(0, 2).join(',');
-    } catch (error) {
-      throw error;
-    }
-  };
-
   const fetchReports = async () => {
     try {
       const reports = await loadReports();
-      
-      // Add location info to each report using reverse geocoding
-      const reportsWithLocation = await Promise.all(
-        reports.map(async (report) => {
-          try {
-            const location = await reverseGeocode(report.lat, report.lng);
-            return { ...report, location };
-          } catch {
-            return { 
-              ...report, 
-              location: `${report.lat.toFixed(4)}, ${report.lng.toFixed(4)}` 
-            };
-          }
-        })
-      );
-
-      setWeatherReports(reportsWithLocation);
-      setStatusMessage(`${reportsWithLocation.length} reports loaded`);
+      setWeatherReports(reports);
+      setStatusMessage(`${reports.length} reports loaded`);
     } catch (error) {
       console.error('Failed to load reports:', error);
       setStatusMessage('Failed to load reports');
@@ -81,23 +43,7 @@ export default function App() {
     
     try {
       const reports = await loadUserReports(user.id);
-      
-      // Add location info to each report using reverse geocoding
-      const reportsWithLocation = await Promise.all(
-        reports.map(async (report) => {
-          try {
-            const location = await reverseGeocode(report.lat, report.lng);
-            return { ...report, location };
-          } catch {
-            return { 
-              ...report, 
-              location: `${report.lat.toFixed(4)}, ${report.lng.toFixed(4)}` 
-            };
-          }
-        })
-      );
-
-      setUserReports(reportsWithLocation);
+      setUserReports(reports);
     } catch (error) {
       console.error('Failed to load user reports:', error);
     }
