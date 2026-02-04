@@ -126,21 +126,19 @@ export default function App() {
       mapRef.current.centerOnLocation(lat, lng);
     }
     
-    // On mobile, scroll to the map - use window scroll for better compatibility
-    if (window.innerWidth < 1024) {
-      setTimeout(() => {
-        const mapElement = mapContainerRef.current;
-        if (mapElement) {
-          const elementPosition = mapElement.getBoundingClientRect().top;
-          const offsetPosition = elementPosition + window.scrollY - 20; // 20px padding from top
-          
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
-          });
-        }
-      }, 100);
-    }
+    // Scroll to the map on all devices
+    setTimeout(() => {
+      const mapElement = mapContainerRef.current;
+      if (mapElement) {
+        const elementPosition = mapElement.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.scrollY - 20; // 20px padding from top
+        
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
   };
 
   // Prepare markers for map
