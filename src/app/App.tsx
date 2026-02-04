@@ -132,7 +132,7 @@ export default function App() {
         const mapElement = mapContainerRef.current;
         if (mapElement) {
           const elementPosition = mapElement.getBoundingClientRect().top;
-          const offsetPosition = elementPosition + window.pageYOffset - 20; // 20px padding from top
+          const offsetPosition = elementPosition + window.scrollY - 20; // 20px padding from top
           
           window.scrollTo({
             top: offsetPosition,

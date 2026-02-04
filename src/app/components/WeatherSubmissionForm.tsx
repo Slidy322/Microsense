@@ -366,34 +366,33 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
       async (position) => {
         const { latitude, longitude } = position.coords;
         
-        // Update form data with actual user coordinates
+        // INSTANT: Update form data with actual user coordinates immediately
         setFormData(prev => ({
           ...prev,
           lat: latitude,
           lng: longitude,
+          location: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, // Show coordinates immediately
         }));
 
-        // Notify parent component about location change
+        // INSTANT: Notify parent component about location change (shows red pin immediately)
         if (onLocationChange) {
           onLocationChange(latitude, longitude);
         }
 
-        // Get address from coordinates using reverse geocoding
+        // Stop loading state immediately
+        setIsLoadingLocation(false);
+
+        // BACKGROUND: Get address from coordinates using reverse geocoding (doesn't block UI)
         try {
           const address = await reverseGeocode(latitude, longitude);
           setFormData(prev => ({
             ...prev,
-            location: address,
+            location: address, // Update with human-readable address when ready
           }));
         } catch (error) {
           console.error('Error getting address:', error);
-          setFormData(prev => ({
-            ...prev,
-            location: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
-          }));
+          // Keep showing coordinates if geocoding fails
         }
-
-        setIsLoadingLocation(false);
       },
       (error) => {
         // Handle geolocation errors - all errors default to Davao City
