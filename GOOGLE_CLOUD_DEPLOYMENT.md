@@ -60,7 +60,28 @@ This guide covers deploying your MICROSENSE weather app to Google Cloud Run for 
    gcloud services enable containerregistry.googleapis.com
    ```
 
-3. **Set Environment Variables**
+3. **Grant Permissions to Cloud Build Service Account**
+   ```bash
+   # Get your project number
+   PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format='value(projectNumber)')
+   
+   # Grant Cloud Run Admin role
+   gcloud projects add-iam-policy-binding $(gcloud config get-value project) \
+     --member=serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com \
+     --role=roles/run.admin
+   
+   # Grant Service Account User role
+   gcloud projects add-iam-policy-binding $(gcloud config get-value project) \
+     --member=serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com \
+     --role=roles/iam.serviceAccountUser
+   
+   # Grant Cloud Build Service Account role
+   gcloud projects add-iam-policy-binding $(gcloud config get-value project) \
+     --member=serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com \
+     --role=roles/cloudbuild.builds.builder
+   ```
+
+4. **Set Environment Variables**
    
    Create a `.env.production` file:
    ```env
@@ -74,9 +95,30 @@ This guide covers deploying your MICROSENSE weather app to Google Cloud Run for 
 #### Method A: Using gcloud CLI (Quick Deploy)
 
 ```bash
+# First, set your project ID (not project number!)
+# Find your project ID at: https://console.cloud.google.com/
+# It looks like: microsense-app (not a number like 123456789)
+
+gcloud config set project YOUR_PROJECT_ID
+
+# OR use the --project flag in the deploy command
+
 # Build and deploy in one command
 gcloud run deploy microsense \
   --source . \
+  --region=asia-southeast1 \
+  --platform=managed \
+  --allow-unauthenticated \
+  --port=8080 \
+  --memory=512Mi \
+  --cpu=1 \
+  --min-instances=0 \
+  --max-instances=10
+
+# If you get "project number" error, add --project flag:
+gcloud run deploy microsense \
+  --source . \
+  --project=YOUR_PROJECT_ID \
   --region=asia-southeast1 \
   --platform=managed \
   --allow-unauthenticated \
@@ -308,3 +350,19 @@ gcloud run services update microsense \
 - Google Cloud Run Docs: https://cloud.google.com/run/docs
 - Cloud Run Pricing: https://cloud.google.com/run/pricing
 - Community: https://stackoverflow.com/questions/tagged/google-cloud-run
+
+## Quick Start (3 commands):
+
+```bash
+# 1. Install Google Cloud CLI and login
+gcloud auth login
+
+# 2. Set your project
+gcloud config set project YOUR_PROJECT_ID
+
+# 3. Deploy (includes build)
+gcloud run deploy microsense \
+  --source . \
+  --region=asia-southeast1 \
+  --allow-unauthenticated
+```
