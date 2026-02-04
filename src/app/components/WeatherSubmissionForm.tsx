@@ -336,6 +336,7 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
   }, []); // Request location on every mount
 
   const requestLocationPermission = () => {
+    console.log('🔍 requestLocationPermission called');
     setIsLoadingLocation(true);
     setLocationError('');
 
