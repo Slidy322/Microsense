@@ -94,16 +94,20 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
     }
   }, [isLoaded, loadError]);
 
-  // Update user marker when location changes
+  // Update user marker when location changes OR when map becomes ready
   useEffect(() => {
-    console.log('📍 Location props changed - userLat:', userLat, 'userLng:', userLng, 'Map ready:', !!mapInstanceRef.current);
+    console.log('📍 Location/Map state changed - userLat:', userLat, 'userLng:', userLng, 'Map ready:', !!mapInstanceRef.current);
+    
+    // Create marker if we have BOTH location AND map
     if (mapInstanceRef.current && userLat && userLng && userLat !== 0 && userLng !== 0) {
-      console.log('✅ Map is ready, updating user marker to:', userLat, userLng);
+      console.log('✅ Both map and location ready, creating marker');
       updateUserMarker(userLat, userLng);
     } else if (userLat && userLng && userLat !== 0 && userLng !== 0) {
-      console.log('⏳ Map not ready yet, will update when map initializes');
+      console.log('⏳ Have location but map not ready yet');
+    } else if (mapInstanceRef.current) {
+      console.log('⏳ Map ready but no location yet');
     }
-  }, [userLat, userLng]);
+  }, [userLat, userLng, isLoaded]); // Add isLoaded to dependencies
 
   // Update weather markers when reports change
   useEffect(() => {

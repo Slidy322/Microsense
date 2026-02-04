@@ -17,30 +17,6 @@ export interface WeatherReport {
   location?: string; // Add location field
 }
 
-// Reverse geocode function (only used once during submission)
-async function reverseGeocode(lat: number, lng: number): Promise<string> {
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`
-    );
-    const data = await response.json();
-    const address = data.address;
-    const parts = [];
-    
-    if (address.suburb || address.neighbourhood) {
-      parts.push(address.suburb || address.neighbourhood);
-    }
-    if (address.city || address.town || address.municipality) {
-      parts.push(address.city || address.town || address.municipality);
-    }
-    
-    return parts.join(', ') || data.display_name.split(',').slice(0, 2).join(',');
-  } catch (error) {
-    console.error('Geocoding failed:', error);
-    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-  }
-}
-
 export async function supabaseFetch(path: string, options: RequestInit = {}) {
   const url = `${SUPABASE_URL}${path}`;
   const headers = {
@@ -101,8 +77,8 @@ export async function postReport(data: {
     throw new Error('You must be logged in to post a weather report');
   }
   
-  // Geocode the location once during submission
-  const location = await reverseGeocode(data.lat, data.lng);
+  // Use coordinates as location - NO REVERSE GEOCODING to avoid rate limits
+  const location = `${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`;
   
   await supabaseFetch(`/rest/v1/reports`, {
     method: "POST",
