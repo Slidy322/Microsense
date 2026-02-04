@@ -372,7 +372,10 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
 
         // INSTANT: Notify parent component about location change (shows red pin immediately)
         if (onLocationChange) {
+          console.log('📤 Sending location to parent:', latitude, longitude);
           onLocationChange(latitude, longitude);
+        } else {
+          console.warn('⚠️ onLocationChange callback is not provided!');
         }
 
         // Stop loading state immediately

@@ -96,9 +96,12 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
 
   // Update user marker when location changes
   useEffect(() => {
+    console.log('📍 Location props changed - userLat:', userLat, 'userLng:', userLng);
     if (mapInstanceRef.current && userLat && userLng && userLat !== 0 && userLng !== 0) {
-      console.log('Updating user marker to:', userLat, userLng);
+      console.log('✅ Map is ready, updating user marker to:', userLat, userLng);
       updateUserMarker(userLat, userLng);
+    } else if (userLat && userLng && userLat !== 0 && userLng !== 0) {
+      console.log('⏳ Map not ready yet, will update when map initializes');
     }
   }, [userLat, userLng]);
 
@@ -161,12 +164,14 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
 
       // If we already have user location, show it immediately
       if (userLat && userLng && userLat !== 0 && userLng !== 0) {
-        console.log('Initial user location detected:', userLat, userLng);
+        console.log('🎯 Initial user location detected on map init:', userLat, userLng);
         // Wait for map to be ready before adding marker
         window.google.maps.event.addListenerOnce(map, 'idle', () => {
-          console.log('Map idle, adding user marker');
+          console.log('🗺️ Map idle event - creating user marker');
           updateUserMarker(userLat, userLng);
         });
+      } else {
+        console.log('⏳ No user location yet on map init');
       }
 
       // Initialize weather markers if we have data
@@ -185,7 +190,7 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
 
   const updateUserMarker = (lat: number, lng: number) => {
     if (!mapInstanceRef.current || !window.google || !window.google.maps) {
-      console.warn('Map not ready for user marker update');
+      console.warn('⚠️ Map not ready for user marker update');
       return;
     }
 
@@ -194,9 +199,12 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
     try {
       // Remove old marker if it exists
       if (userMarkerRef.current) {
+        console.log('🗑️ Removing old user marker');
         userMarkerRef.current.setMap(null);
         userMarkerRef.current = null;
       }
+
+      console.log('🎯 Creating new user marker at:', position);
 
       // Create custom red pin icon
       const redPinIcon = {
@@ -209,15 +217,19 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
         anchor: new window.google.maps.Point(12, 22),
       };
 
-      // Create new marker
-      userMarkerRef.current = new window.google.maps.Marker({
+      // Create new marker - FORCE it to be visible
+      const marker = new window.google.maps.Marker({
         position: position,
         map: mapInstanceRef.current,
         title: 'You are here',
         icon: redPinIcon,
         zIndex: 1000,
         animation: window.google.maps.Animation.DROP,
+        optimized: false, // Force marker to always render
+        visible: true, // Explicitly set visible
       });
+
+      userMarkerRef.current = marker;
 
       // Add info window for user marker
       const infoWindow = new window.google.maps.InfoWindow({
@@ -231,17 +243,18 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
         `,
       });
 
-      userMarkerRef.current.addListener('click', () => {
-        infoWindow.open({ anchor: userMarkerRef.current!, map: mapInstanceRef.current! });
+      marker.addListener('click', () => {
+        infoWindow.open({ anchor: marker, map: mapInstanceRef.current! });
       });
       
       // Center map on user location
       mapInstanceRef.current.setCenter(position);
       mapInstanceRef.current.setZoom(15);
       
-      console.log('User marker created at:', position);
+      console.log('✅✅ User marker created successfully at:', position);
+      console.log('Marker visible:', marker.getVisible(), 'Map:', marker.getMap());
     } catch (error) {
-      console.error('Error updating user marker:', error);
+      console.error('❌ Error updating user marker:', error);
     }
   };
 

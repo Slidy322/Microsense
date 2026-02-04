@@ -117,6 +117,7 @@ export default function App() {
   };
 
   const handleLocationChange = (lat: number, lng: number) => {
+    console.log('🌍 Location changed in App.tsx:', lat, lng);
     setUserLocation({ lat, lng });
   };
 
