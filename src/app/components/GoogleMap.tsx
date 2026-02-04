@@ -31,6 +31,15 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Check if user location is available
+  useEffect(() => {
+    if (userLat && userLng && userLat !== 0 && userLng !== 0) {
+      setHasUserLocation(true);
+    } else {
+      setHasUserLocation(false);
+    }
+  }, [userLat, userLng]);
+
   useEffect(() => {
     // Check if script is already in the DOM
     const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
@@ -39,8 +48,14 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
       // Script already exists, wait for it to load
       if (window.google && window.google.maps) {
         setIsLoaded(true);
+        scriptLoadedRef.current = true;
       } else {
-        existingScript.addEventListener('load', () => setIsLoaded(true));
+        const handleLoad = () => {
+          setIsLoaded(true);
+          scriptLoadedRef.current = true;
+        };
+        existingScript.addEventListener('load', handleLoad);
+        return () => existingScript.removeEventListener('load', handleLoad);
       }
       return;
     }
@@ -50,14 +65,27 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async&libraries=marker`;
     script.async = true;
     script.defer = true;
-    script.onload = () => setIsLoaded(true);
-    script.onerror = () => setLoadError('Failed to load Google Maps');
+    script.onload = () => {
+      setIsLoaded(true);
+      scriptLoadedRef.current = true;
+    };
+    script.onerror = () => {
+      setLoadError('Failed to load Google Maps');
+      console.error('Google Maps script failed to load');
+    };
     document.head.appendChild(script);
+    
+    return () => {
+      // Cleanup: remove script on unmount if it was added by this component
+      if (!existingScript) {
+        script.remove();
+      }
+    };
   }, [apiKey]);
 
   // Initialize map once script is loaded
   useEffect(() => {
-    if (isLoaded && !loadError && !mapInstanceRef.current) {
+    if (isLoaded && !loadError && !mapInstanceRef.current && mapRef.current) {
       // Add a small delay to ensure DOM is ready
       const timer = setTimeout(() => {
         initializeMap();
@@ -68,9 +96,8 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
 
   // Update user marker when location changes
   useEffect(() => {
-    if (mapInstanceRef.current && userLat && userLng) {
+    if (mapInstanceRef.current && userLat && userLng && userLat !== 0 && userLng !== 0) {
       updateUserMarker(userLat, userLng);
-      setHasUserLocation(true);
     }
   }, [userLat, userLng]);
 
@@ -84,23 +111,40 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
   const initializeMap = () => {
     // Prevent multiple initialization attempts
     if (initializationAttemptedRef.current || mapInstanceRef.current) {
+      console.log('Map already initialized or initialization in progress');
       return;
     }
 
     if (!mapRef.current) {
       console.warn('Map container not ready');
+      // Retry after a short delay
+      setTimeout(() => {
+        if (mapRef.current && !mapInstanceRef.current) {
+          initializationAttemptedRef.current = false;
+          initializeMap();
+        }
+      }, 500);
       return;
     }
 
     // Verify Google Maps is fully loaded
     if (!window.google || !window.google.maps || !window.google.maps.Map) {
       console.warn('Google Maps API not fully loaded yet');
+      // Retry after a short delay
+      setTimeout(() => {
+        if (!mapInstanceRef.current) {
+          initializationAttemptedRef.current = false;
+          initializeMap();
+        }
+      }, 500);
       return;
     }
 
     initializationAttemptedRef.current = true;
 
     try {
+      console.log('Initializing Google Maps...');
+      
       const map = new window.google.maps.Map(mapRef.current, {
         center: DAVAO_CITY_CENTER,
         zoom: 12,
@@ -112,9 +156,21 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
       mapInstanceRef.current = map;
       setLoadError(null);
 
+      console.log('Google Maps initialized successfully');
+
+      // If we already have user location, show it
+      if (userLat && userLng && userLat !== 0 && userLng !== 0) {
+        // Wait for map to be ready before adding marker
+        window.google.maps.event.addListenerOnce(map, 'idle', () => {
+          updateUserMarker(userLat, userLng);
+        });
+      }
+
       // Initialize weather markers if we have data
       if (markers.length > 0) {
-        updateWeatherMarkers(markers);
+        window.google.maps.event.addListenerOnce(map, 'idle', () => {
+          updateWeatherMarkers(markers);
+        });
       }
 
     } catch (error) {
@@ -125,37 +181,62 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
   };
 
   const updateUserMarker = (lat: number, lng: number) => {
-    if (!mapInstanceRef.current || !window.google || !window.google.maps) return;
+    if (!mapInstanceRef.current || !window.google || !window.google.maps) {
+      console.warn('Map not ready for user marker update');
+      return;
+    }
 
     const position = { lat, lng };
     
     try {
-      // Create or update red pin marker for user location
-      if (!userMarkerRef.current) {
-        // Create custom red pin icon
-        const redPinIcon = {
-          path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-          fillColor: '#EF4444',
-          fillOpacity: 1,
-          strokeColor: '#FFFFFF',
-          strokeWeight: 2,
-          scale: 2,
-          anchor: new window.google.maps.Point(12, 22),
-        };
-
-        userMarkerRef.current = new window.google.maps.Marker({
-          position: position,
-          map: mapInstanceRef.current,
-          title: 'You are here',
-          icon: redPinIcon,
-          zIndex: 1000,
-        });
-      } else {
-        userMarkerRef.current.setPosition(position);
+      // Remove old marker if it exists
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setMap(null);
+        userMarkerRef.current = null;
       }
+
+      // Create custom red pin icon
+      const redPinIcon = {
+        path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+        fillColor: '#EF4444',
+        fillOpacity: 1,
+        strokeColor: '#FFFFFF',
+        strokeWeight: 2,
+        scale: 2,
+        anchor: new window.google.maps.Point(12, 22),
+      };
+
+      // Create new marker
+      userMarkerRef.current = new window.google.maps.Marker({
+        position: position,
+        map: mapInstanceRef.current,
+        title: 'You are here',
+        icon: redPinIcon,
+        zIndex: 1000,
+        animation: window.google.maps.Animation.DROP,
+      });
+
+      // Add info window for user marker
+      const infoWindow = new window.google.maps.InfoWindow({
+        content: `
+          <div style="font-family:system-ui; font-size:14px; color: #1F2937; min-width: 120px;">
+            <div style="font-weight: bold; color: #EF4444;">📍 Your Location</div>
+            <div style="opacity: 0.8; font-size: 12px; margin-top: 4px;">
+              ${lat.toFixed(5)}, ${lng.toFixed(5)}
+            </div>
+          </div>
+        `,
+      });
+
+      userMarkerRef.current.addListener('click', () => {
+        infoWindow.open({ anchor: userMarkerRef.current!, map: mapInstanceRef.current! });
+      });
       
+      // Center map on user location
       mapInstanceRef.current.setCenter(position);
       mapInstanceRef.current.setZoom(15);
+      
+      console.log('User marker created at:', position);
     } catch (error) {
       console.error('Error updating user marker:', error);
     }
