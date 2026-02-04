@@ -417,31 +417,6 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
     );
   };
 
-  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
-    // Using a public reverse geocoding API
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`
-      );
-      const data = await response.json();
-      
-      // Extract relevant address components
-      const address = data.address;
-      const parts = [];
-      
-      if (address.suburb || address.neighbourhood) {
-        parts.push(address.suburb || address.neighbourhood);
-      }
-      if (address.city || address.town || address.municipality) {
-        parts.push(address.city || address.town || address.municipality);
-      }
-      
-      return parts.join(', ') || data.display_name.split(',').slice(0, 2).join(',');
-    } catch (error) {
-      throw error;
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
