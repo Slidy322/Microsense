@@ -380,18 +380,6 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
 
         // Stop loading state immediately
         setIsLoadingLocation(false);
-
-        // BACKGROUND: Get address from coordinates using reverse geocoding (doesn't block UI)
-        try {
-          const address = await reverseGeocode(latitude, longitude);
-          setFormData(prev => ({
-            ...prev,
-            location: address, // Update with human-readable address when ready
-          }));
-        } catch (error) {
-          console.error('Error getting address:', error);
-          // Keep showing coordinates if geocoding fails
-        }
       },
       (error) => {
         // Handle geolocation errors - all errors default to Davao City
