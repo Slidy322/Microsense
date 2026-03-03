@@ -199,10 +199,9 @@ export default function App() {
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-6">
             <div className="flex items-start justify-between flex-wrap gap-4">
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
-                  <img src="/icon-512.png" alt="MICROSENSE Logo" className="h-12 w-auto" />
-                  MICROSENSE
-                </h1>
+                <div className="flex items-center gap-3 mb-2">
+                  <img src="/microsense-logo.png" alt="MICROSENSE Logo" className="h-14 w-auto" />
+                </div>
                 <p className="text-white/80">
                   Community-powered local weather monitoring
                 </p>

@@ -35,8 +35,8 @@ export function LoginForm({ onLogin, onSignup }: LoginFormProps) {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 p-4">
       <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center mx-auto mb-4">
-            <img src="/icon-512.png" alt="MICROSENSE Logo" className="w-32 h-auto" />
+          <div className="flex items-center justify-center mx-auto mb-6">
+            <img src="/microsense-logo.png" alt="MICROSENSE Logo" className="h-20 w-auto" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">
             MICROSENSE
