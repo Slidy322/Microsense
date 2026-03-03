@@ -7,6 +7,7 @@ import { UserHistory } from '@/app/components/UserHistory';
 import { Settings } from '@/app/components/Settings';
 import { Dashboard } from '@/app/components/Dashboard';
 import { LoginForm } from '@/app/components/LoginForm';
+import { DataTable } from '@/app/components/DataTable';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { loadReports, loadUserReports, postReport, WeatherReport as SupabaseWeatherReport } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -97,11 +98,30 @@ export default function App() {
     try {
       setStatusMessage('Posting update...');
       
+      // Convert slider values to actual values for database
+      const uvIndex = Math.round((data.intensity / 100) * 11); // Convert to 0-11 scale
+      const temp = data.condition === 'Sunny' ? 25 + (data.temperature / 100) * 12 : 
+                   data.condition === 'Cloudy' ? 24 + (data.temperature / 100) * 10 :
+                   22 + (data.temperature / 100) * 10;
+      const visibility = (data.visibility / 100) * 10; // Convert to km
+      
       await postReport({
         lat: data.lat,
         lng: data.lng,
         condition: data.condition,
         note: data.notes.trim() || null,
+        uv_index: uvIndex,
+        temperature: Number(temp.toFixed(1)),
+        humidity: data.humidity,
+        visibility: Number(visibility.toFixed(1)),
+        smell: data.smell,
+        // Reference data if provided
+        ref_condition: data.ref_condition,
+        ref_uv_index: data.ref_uv_index,
+        ref_temperature: data.ref_temperature,
+        ref_humidity: data.ref_humidity,
+        ref_visibility: data.ref_visibility,
+        ref_smell: data.ref_smell,
       });
 
       setStatusMessage('Posted! Loading updates…');
@@ -238,6 +258,8 @@ export default function App() {
                     markers={mapMarkers}
                     ref={mapRef}
                   />
+                  {/* Data Table - Below the map */}
+                  <DataTable reports={weatherReports} />
                 </div>
 
                 {/* Left Column - Weather Submission Form (Second on mobile, left on desktop) */}

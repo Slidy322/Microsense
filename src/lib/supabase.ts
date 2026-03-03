@@ -14,7 +14,24 @@ export interface WeatherReport {
   condition: string;
   note: string | null;
   user_id?: string;
-  location?: string; // Add location field
+  location?: string;
+  // Additional weather fields
+  uv_index?: number;
+  temperature?: number;
+  humidity?: number;
+  visibility?: number;
+  smell?: string;
+  // Reference data for comparison
+  ref_condition?: string;
+  ref_uv_index?: number;
+  ref_temperature?: number;
+  ref_humidity?: number;
+  ref_visibility?: number;
+  ref_smell?: string;
+  // Accuracy tracking
+  correct_entries?: number;
+  total_entries?: number;
+  accuracy_percent?: number;
 }
 
 export async function supabaseFetch(path: string, options: RequestInit = {}) {
@@ -40,7 +57,7 @@ export async function loadReports(): Promise<WeatherReport[]> {
   const sevenDaysAgoISO = sevenDaysAgo.toISOString();
   
   const res = await supabaseFetch(
-    `/rest/v1/reports?select=id,created_at,lat,lng,condition,note,user_id,location&created_at=gte.${sevenDaysAgoISO}&order=created_at.desc&limit=500`
+    `/rest/v1/reports?select=*&created_at=gte.${sevenDaysAgoISO}&order=created_at.desc&limit=500`
   );
   const reports = await res.json();
   
@@ -53,7 +70,7 @@ export async function loadReports(): Promise<WeatherReport[]> {
 
 export async function loadUserReports(userId: string): Promise<WeatherReport[]> {
   const res = await supabaseFetch(
-    `/rest/v1/reports?select=id,created_at,lat,lng,condition,note,user_id,location&user_id=eq.${userId}&order=created_at.desc&limit=100`
+    `/rest/v1/reports?select=*&user_id=eq.${userId}&order=created_at.desc&limit=100`
   );
   const reports = await res.json();
   
@@ -69,6 +86,17 @@ export async function postReport(data: {
   lng: number;
   condition: string;
   note: string | null;
+  uv_index?: number;
+  temperature?: number;
+  humidity?: number;
+  visibility?: number;
+  smell?: string;
+  ref_condition?: string;
+  ref_uv_index?: number;
+  ref_temperature?: number;
+  ref_humidity?: number;
+  ref_visibility?: number;
+  ref_smell?: string;
 }) {
   // Get current user - REQUIRED for posting
   const { data: { user } } = await supabase.auth.getUser();
@@ -80,13 +108,34 @@ export async function postReport(data: {
   // Use coordinates as location - NO REVERSE GEOCODING to avoid rate limits
   const location = `${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`;
   
+  // Calculate accuracy if reference data is provided
+  let correct_entries = 0;
+  let total_entries = 6;
+  let accuracy_percent = 0;
+  
+  if (data.ref_condition || data.ref_uv_index || data.ref_temperature || 
+      data.ref_humidity || data.ref_visibility || data.ref_smell) {
+    // Compare each field
+    if (data.condition === data.ref_condition) correct_entries++;
+    if (data.uv_index === data.ref_uv_index) correct_entries++;
+    if (data.temperature === data.ref_temperature) correct_entries++;
+    if (data.humidity === data.ref_humidity) correct_entries++;
+    if (data.visibility === data.ref_visibility) correct_entries++;
+    if (data.smell === data.ref_smell) correct_entries++;
+    
+    accuracy_percent = Math.round((correct_entries / total_entries) * 100);
+  }
+  
   await supabaseFetch(`/rest/v1/reports`, {
     method: "POST",
     headers: { "Prefer": "return=minimal" },
     body: JSON.stringify({
       ...data,
-      location, // Include location in the submission
-      user_id: user.id // REQUIRED: Link report to user account
+      location,
+      user_id: user.id,
+      correct_entries,
+      total_entries,
+      accuracy_percent
     })
   });
 }

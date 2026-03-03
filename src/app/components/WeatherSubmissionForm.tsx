@@ -14,6 +14,14 @@ interface WeatherData {
   windSpeed: number;
   temperature: number;
   smell: string;
+  // Reference data for validation
+  ref_condition?: string;
+  ref_uv_index?: number;
+  ref_temperature?: number;
+  ref_humidity?: number;
+  ref_visibility?: number;
+  ref_smell?: string;
+  enableValidation?: boolean;
 }
 
 interface WeatherSubmissionFormProps {
@@ -326,6 +334,7 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
     windSpeed: 10,
     temperature: 50,
     smell: 'Fresh',
+    enableValidation: false,
   });
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [locationError, setLocationError] = useState('');
