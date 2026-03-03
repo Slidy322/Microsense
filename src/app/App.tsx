@@ -98,22 +98,15 @@ export default function App() {
     try {
       setStatusMessage('Posting update...');
       
-      // Convert slider values to actual values for database
-      const uvIndex = Math.round((data.intensity / 100) * 11); // Convert to 0-11 scale
-      const temp = data.condition === 'Sunny' ? 25 + (data.temperature / 100) * 12 : 
-                   data.condition === 'Cloudy' ? 24 + (data.temperature / 100) * 10 :
-                   22 + (data.temperature / 100) * 10;
-      const visibility = (data.visibility / 100) * 10; // Convert to km
-      
       await postReport({
         lat: data.lat,
         lng: data.lng,
         condition: data.condition,
         note: data.notes.trim() || null,
-        uv_index: uvIndex,
-        temperature: Number(temp.toFixed(1)),
+        uv_index: data.intensity,
+        temperature: data.temperature,
         humidity: data.humidity,
-        visibility: Number(visibility.toFixed(1)),
+        visibility: data.visibility,
         smell: data.smell,
         // Reference data if provided
         ref_condition: data.ref_condition,

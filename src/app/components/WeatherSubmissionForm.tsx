@@ -30,291 +30,286 @@ interface WeatherSubmissionFormProps {
   onRecenterMap?: () => void;
 }
 
-// Define what sliders show for each weather condition
-const weatherSliderConfigs: Record<string, {
-  sliders: Array<{
+// Define what inputs show for each weather condition
+const weatherInputConfigs: Record<string, {
+  inputs: Array<{
     name: string;
     label: string;
     icon: any;
     unit: string;
-    getLabel: (value: number) => string;
+    min: number;
+    max: number;
+    step: number;
+    placeholder: string;
   }>;
   smellOptions: string[];
 }> = {
   Sunny: {
-    sliders: [
+    inputs: [
       {
         name: 'intensity',
         label: 'UV Index / Sun Intensity',
         icon: Sun,
         unit: '',
-        getLabel: (value: number) => {
-          if (value < 30) return 'Low (1-3)';
-          if (value < 60) return 'Moderate (4-6)';
-          if (value < 80) return 'High (7-9)';
-          return 'Extreme (10+)';
-        }
+        min: 0,
+        max: 11,
+        step: 1,
+        placeholder: 'e.g., 7'
       },
       {
         name: 'temperature',
         label: 'Temperature Feel',
         icon: Thermometer,
         unit: '°C',
-        getLabel: (value: number) => {
-          const temp = 25 + (value / 100) * 12; // 25°C to 37°C
-          return `${temp.toFixed(1)}°C`;
-        }
+        min: 20,
+        max: 45,
+        step: 0.1,
+        placeholder: 'e.g., 31.5'
       },
       {
         name: 'humidity',
         label: 'Humidity',
         icon: Droplets,
         unit: '%',
-        getLabel: (value: number) => `${value}%`
+        min: 0,
+        max: 100,
+        step: 1,
+        placeholder: 'e.g., 65'
       },
       {
         name: 'visibility',
         label: 'Visibility',
         icon: Eye,
         unit: 'km',
-        getLabel: (value: number) => {
-          const km = (value / 100) * 10; // 0-10km
-          return `${km.toFixed(1)} km`;
-        }
+        min: 0,
+        max: 10,
+        step: 0.1,
+        placeholder: 'e.g., 7.5'
       }
     ],
     smellOptions: ['Fresh', 'Neutral', 'Dusty', 'Hot Air']
   },
   Cloudy: {
-    sliders: [
+    inputs: [
       {
         name: 'intensity',
         label: 'Cloud Coverage',
         icon: Cloud,
         unit: '%',
-        getLabel: (value: number) => {
-          if (value < 25) return 'Partly Cloudy (25%)';
-          if (value < 50) return 'Mostly Cloudy (50%)';
-          if (value < 75) return 'Overcast (75%)';
-          return 'Complete Cover (100%)';
-        }
+        min: 0,
+        max: 100,
+        step: 1,
+        placeholder: 'e.g., 75'
       },
       {
         name: 'humidity',
         label: 'Humidity',
         icon: Droplets,
         unit: '%',
-        getLabel: (value: number) => `${value}%`
+        min: 0,
+        max: 100,
+        step: 1,
+        placeholder: 'e.g., 70'
       },
       {
         name: 'temperature',
         label: 'Temperature Feel',
         icon: Thermometer,
         unit: '°C',
-        getLabel: (value: number) => {
-          const temp = 24 + (value / 100) * 10; // 24°C to 34°C
-          return `${temp.toFixed(1)}°C`;
-        }
+        min: 20,
+        max: 40,
+        step: 0.1,
+        placeholder: 'e.g., 28.5'
       },
       {
         name: 'visibility',
         label: 'Visibility',
         icon: Eye,
         unit: 'km',
-        getLabel: (value: number) => {
-          const km = (value / 100) * 10;
-          return `${km.toFixed(1)} km`;
-        }
+        min: 0,
+        max: 10,
+        step: 0.1,
+        placeholder: 'e.g., 5.0'
       }
     ],
     smellOptions: ['Fresh', 'Neutral', 'Damp', 'Earthy']
   },
   Rainy: {
-    sliders: [
+    inputs: [
       {
         name: 'intensity',
         label: 'Rainfall Intensity',
         icon: Droplets,
         unit: 'mm/h',
-        getLabel: (value: number) => {
-          if (value < 25) return 'Light (2 mm/h)';
-          if (value < 50) return 'Moderate (7 mm/h)';
-          if (value < 75) return 'Heavy (15 mm/h)';
-          return 'Extreme (50+ mm/h)';
-        }
+        min: 0,
+        max: 50,
+        step: 0.1,
+        placeholder: 'e.g., 7.5'
       },
       {
         name: 'visibility',
         label: 'Visibility',
         icon: Eye,
         unit: 'km',
-        getLabel: (value: number) => {
-          const km = (value / 100) * 5; // Reduced max for rain
-          return `${km.toFixed(1)} km`;
-        }
+        min: 0,
+        max: 5,
+        step: 0.1,
+        placeholder: 'e.g., 2.5'
       },
       {
         name: 'humidity',
         label: 'Humidity',
         icon: Droplets,
         unit: '%',
-        getLabel: (value: number) => `${Math.max(70, value)}%` // Rain = high humidity
+        min: 70,
+        max: 100,
+        step: 1,
+        placeholder: 'e.g., 85'
       },
       {
         name: 'windSpeed',
         label: 'Wind with Rain',
         icon: Wind,
         unit: 'km/h',
-        getLabel: (value: number) => {
-          const speed = (value / 100) * 40;
-          return `${speed.toFixed(0)} km/h`;
-        }
+        min: 0,
+        max: 40,
+        step: 1,
+        placeholder: 'e.g., 15'
       }
     ],
     smellOptions: ['Fresh Rain', 'Wet Earth', 'Neutral', 'Damp']
   },
   Windy: {
-    sliders: [
+    inputs: [
       {
         name: 'windSpeed',
         label: 'Wind Speed',
         icon: Wind,
         unit: 'km/h',
-        getLabel: (value: number) => {
-          const speed = (value / 100) * 60; // 0-60 km/h
-          if (value < 25) return `Light (${speed.toFixed(0)} km/h)`;
-          if (value < 50) return `Moderate (${speed.toFixed(0)} km/h)`;
-          if (value < 75) return `Strong (${speed.toFixed(0)} km/h)`;
-          return `Gale Force (${speed.toFixed(0)} km/h)`;
-        }
+        min: 0,
+        max: 60,
+        step: 1,
+        placeholder: 'e.g., 35'
       },
       {
         name: 'intensity',
         label: 'Gust Intensity',
         icon: Gauge,
         unit: '',
-        getLabel: (value: number) => {
-          if (value < 33) return 'Steady';
-          if (value < 66) return 'Gusty';
-          return 'Very Gusty';
-        }
+        min: 0,
+        max: 100,
+        step: 1,
+        placeholder: 'e.g., 65'
       },
       {
         name: 'visibility',
         label: 'Visibility (Dust/Debris)',
         icon: Eye,
         unit: 'km',
-        getLabel: (value: number) => {
-          const km = (value / 100) * 8;
-          return `${km.toFixed(1)} km`;
-        }
+        min: 0,
+        max: 8,
+        step: 0.1,
+        placeholder: 'e.g., 4.5'
       },
       {
         name: 'temperature',
         label: 'Wind Chill Feel',
         icon: Thermometer,
         unit: '°C',
-        getLabel: (value: number) => {
-          const temp = 22 + (value / 100) * 10;
-          return `${temp.toFixed(1)}°C`;
-        }
+        min: 20,
+        max: 35,
+        step: 0.1,
+        placeholder: 'e.g., 26.0'
       }
     ],
     smellOptions: ['Fresh', 'Neutral', 'Dusty', 'Salty Air']
   },
   Storm: {
-    sliders: [
+    inputs: [
       {
         name: 'intensity',
         label: 'Storm Intensity',
         icon: Zap,
         unit: '',
-        getLabel: (value: number) => {
-          if (value < 25) return 'Mild Thunderstorm';
-          if (value < 50) return 'Moderate Storm';
-          if (value < 75) return 'Severe Storm';
-          return 'Dangerous Storm';
-        }
+        min: 0,
+        max: 100,
+        step: 1,
+        placeholder: 'e.g., 80'
       },
       {
         name: 'windSpeed',
         label: 'Wind Speed',
         icon: Wind,
         unit: 'km/h',
-        getLabel: (value: number) => {
-          const speed = 20 + (value / 100) * 80; // 20-100 km/h
-          return `${speed.toFixed(0)} km/h`;
-        }
+        min: 20,
+        max: 100,
+        step: 1,
+        placeholder: 'e.g., 65'
       },
       {
         name: 'visibility',
         label: 'Visibility',
         icon: Eye,
         unit: 'km',
-        getLabel: (value: number) => {
-          const km = (value / 100) * 3; // Very reduced
-          return `${km.toFixed(1)} km`;
-        }
+        min: 0,
+        max: 3,
+        step: 0.1,
+        placeholder: 'e.g., 1.5'
       },
       {
         name: 'humidity',
         label: 'Rainfall Intensity',
         icon: Droplets,
         unit: '',
-        getLabel: (value: number) => {
-          if (value < 33) return 'Heavy Rain';
-          if (value < 66) return 'Torrential Rain';
-          return 'Extreme Downpour';
-        }
+        min: 0,
+        max: 100,
+        step: 1,
+        placeholder: 'e.g., 85'
       }
     ],
     smellOptions: ['Wet Earth', 'Ozone', 'Fresh Rain', 'Metallic']
   },
   Flooding: {
-    sliders: [
+    inputs: [
       {
         name: 'intensity',
-        label: 'Water Level',
+        label: 'Water Level (cm)',
         icon: Waves,
-        unit: '',
-        getLabel: (value: number) => {
-          if (value < 25) return 'Ankle Deep (10 cm)';
-          if (value < 50) return 'Knee Deep (40 cm)';
-          if (value < 75) return 'Waist Deep (80 cm)';
-          return 'Chest+ Deep (120+ cm)';
-        }
+        unit: 'cm',
+        min: 0,
+        max: 150,
+        step: 1,
+        placeholder: 'e.g., 40'
       },
       {
         name: 'windSpeed',
         label: 'Water Flow Speed',
         icon: Gauge,
         unit: '',
-        getLabel: (value: number) => {
-          if (value < 33) return 'Slow/Standing';
-          if (value < 66) return 'Moderate Flow';
-          return 'Fast/Dangerous';
-        }
+        min: 0,
+        max: 100,
+        step: 1,
+        placeholder: 'e.g., 50'
       },
       {
         name: 'visibility',
         label: 'Visibility in Area',
         icon: Eye,
         unit: 'km',
-        getLabel: (value: number) => {
-          const km = (value / 100) * 4;
-          return `${km.toFixed(1)} km`;
-        }
+        min: 0,
+        max: 4,
+        step: 0.1,
+        placeholder: 'e.g., 2.0'
       },
       {
         name: 'humidity',
         label: 'Area Affected',
         icon: Cloud,
         unit: '',
-        getLabel: (value: number) => {
-          if (value < 33) return 'Localized';
-          if (value < 66) return 'Widespread';
-          return 'Major Area';
-        }
+        min: 0,
+        max: 100,
+        step: 1,
+        placeholder: 'e.g., 70'
       }
     ],
     smellOptions: ['Muddy', 'Sewage', 'Stagnant', 'Debris']
@@ -328,11 +323,11 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
     location: '',
     lat: 0,
     lng: 0,
-    intensity: 50,
-    visibility: 70,
+    intensity: 7,
+    visibility: 7.5,
     humidity: 65,
-    windSpeed: 10,
-    temperature: 50,
+    windSpeed: 15,
+    temperature: 31.5,
     smell: 'Fresh',
     enableValidation: false,
   });
@@ -451,7 +446,7 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
     
     // Reset smell to first option when condition changes
     if (e.target.name === 'condition') {
-      const config = weatherSliderConfigs[e.target.value as keyof typeof weatherSliderConfigs];
+      const config = weatherInputConfigs[e.target.value as keyof typeof weatherInputConfigs];
       newData.smell = config.smellOptions[0];
     }
     
@@ -465,7 +460,7 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
     });
   };
 
-  const currentConfig = weatherSliderConfigs[formData.condition as keyof typeof weatherSliderConfigs];
+  const currentConfig = weatherInputConfigs[formData.condition as keyof typeof weatherInputConfigs];
 
   return (
     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5">
@@ -535,25 +530,31 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
           </select>
         </div>
 
-        {/* Dynamic Sliders based on Weather Condition */}
-        {currentConfig.sliders.map((slider) => {
-          const Icon = slider.icon;
+        {/* Dynamic Input Fields based on Weather Condition */}
+        {currentConfig.inputs.map((input) => {
+          const Icon = input.icon;
           return (
-            <div key={slider.name}>
+            <div key={input.name}>
               <label className="text-white/80 text-xs mb-1.5 block flex items-center gap-1.5">
                 <Icon size={14} />
-                {slider.label}
+                {input.label}
               </label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={formData[slider.name as keyof WeatherData] as number}
-                onChange={(e) => handleSliderChange(slider.name, parseInt(e.target.value))}
-                className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-blue-500"
-              />
-              <div className="text-white/60 text-xs text-right mt-1">
-                {slider.getLabel(formData[slider.name as keyof WeatherData] as number)}
+              <div className="relative">
+                <input
+                  type="number"
+                  min={input.min}
+                  max={input.max}
+                  step={input.step}
+                  value={formData[input.name as keyof WeatherData] as number || ''}
+                  onChange={(e) => handleSliderChange(input.name, parseFloat(e.target.value) || 0)}
+                  placeholder={input.placeholder}
+                  className="w-full bg-white/20 backdrop-blur-sm text-white text-sm placeholder-white/50 rounded-lg px-3 py-2 pr-12 outline-none focus:ring-2 focus:ring-white/50"
+                />
+                {input.unit && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 text-xs">
+                    {input.unit}
+                  </span>
+                )}
               </div>
             </div>
           );
@@ -721,11 +722,11 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
               ...formData,
               condition: 'Sunny',
               notes: '',
-              intensity: 50,
-              visibility: 70,
+              intensity: 7,
+              visibility: 7.5,
               humidity: 65,
-              windSpeed: 10,
-              temperature: 50,
+              windSpeed: 15,
+              temperature: 31.5,
               smell: 'Fresh',
             })}
             className="flex-1 bg-white/20 hover:bg-white/30 text-white font-semibold text-sm rounded-lg px-4 py-2.5 transition-all duration-200"
