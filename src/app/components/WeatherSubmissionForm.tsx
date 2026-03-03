@@ -600,6 +600,114 @@ export function WeatherSubmissionForm({ onSubmit, onLocationChange, onRecenterMa
           />
         </div>
 
+        {/* Validation Mode Toggle */}
+        <div className="border-t border-white/20 pt-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.enableValidation || false}
+              onChange={(e) => setFormData({ ...formData, enableValidation: e.target.checked })}
+              className="w-4 h-4 rounded bg-white/20 border-white/30 text-blue-500 focus:ring-2 focus:ring-white/50"
+            />
+            <span className="text-white/90 text-sm font-medium">Enable Validation Mode</span>
+          </label>
+          <p className="text-white/60 text-xs mt-1 ml-6">
+            Add reference data to compare accuracy
+          </p>
+        </div>
+
+        {/* Reference Data Fields (shown when validation mode is enabled) */}
+        {formData.enableValidation && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 space-y-3">
+            <h4 className="text-yellow-300 text-xs font-semibold uppercase tracking-wide">Reference Data</h4>
+            
+            {/* Reference Weather Condition */}
+            <div>
+              <label className="text-white/80 text-xs mb-1 block">Reference Weather</label>
+              <select
+                value={formData.ref_condition || ''}
+                onChange={(e) => setFormData({ ...formData, ref_condition: e.target.value })}
+                className="w-full bg-white/20 backdrop-blur-sm text-white text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-yellow-500/50"
+                style={{ color: 'white' }}
+              >
+                <option value="" style={{ color: 'black', backgroundColor: 'white' }}>Select...</option>
+                <option value="Sunny" style={{ color: 'black', backgroundColor: 'white' }}>Sunny</option>
+                <option value="Cloudy" style={{ color: 'black', backgroundColor: 'white' }}>Cloudy</option>
+                <option value="Rainy" style={{ color: 'black', backgroundColor: 'white' }}>Rainy</option>
+                <option value="Stormy" style={{ color: 'black', backgroundColor: 'white' }}>Stormy</option>
+                <option value="Foggy" style={{ color: 'black', backgroundColor: 'white' }}>Foggy</option>
+                <option value="Flood" style={{ color: 'black', backgroundColor: 'white' }}>Flood</option>
+              </select>
+            </div>
+
+            {/* Reference UV Index */}
+            <div>
+              <label className="text-white/80 text-xs mb-1 block">Reference UV Index (0-11)</label>
+              <input
+                type="number"
+                min="0"
+                max="11"
+                value={formData.ref_uv_index || ''}
+                onChange={(e) => setFormData({ ...formData, ref_uv_index: parseInt(e.target.value) || undefined })}
+                placeholder="e.g., 7"
+                className="w-full bg-white/20 backdrop-blur-sm text-white text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-yellow-500/50"
+              />
+            </div>
+
+            {/* Reference Temperature */}
+            <div>
+              <label className="text-white/80 text-xs mb-1 block">Reference Temperature (°C)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={formData.ref_temperature || ''}
+                onChange={(e) => setFormData({ ...formData, ref_temperature: parseFloat(e.target.value) || undefined })}
+                placeholder="e.g., 31.5"
+                className="w-full bg-white/20 backdrop-blur-sm text-white text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-yellow-500/50"
+              />
+            </div>
+
+            {/* Reference Humidity */}
+            <div>
+              <label className="text-white/80 text-xs mb-1 block">Reference Humidity (%)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={formData.ref_humidity || ''}
+                onChange={(e) => setFormData({ ...formData, ref_humidity: parseInt(e.target.value) || undefined })}
+                placeholder="e.g., 65"
+                className="w-full bg-white/20 backdrop-blur-sm text-white text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-yellow-500/50"
+              />
+            </div>
+
+            {/* Reference Visibility */}
+            <div>
+              <label className="text-white/80 text-xs mb-1 block">Reference Visibility (km)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={formData.ref_visibility || ''}
+                onChange={(e) => setFormData({ ...formData, ref_visibility: parseFloat(e.target.value) || undefined })}
+                placeholder="e.g., 7.5"
+                className="w-full bg-white/20 backdrop-blur-sm text-white text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-yellow-500/50"
+              />
+            </div>
+
+            {/* Reference Smell */}
+            <div>
+              <label className="text-white/80 text-xs mb-1 block">Reference Smell</label>
+              <input
+                type="text"
+                value={formData.ref_smell || ''}
+                onChange={(e) => setFormData({ ...formData, ref_smell: e.target.value })}
+                placeholder="e.g., Fresh"
+                className="w-full bg-white/20 backdrop-blur-sm text-white text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-yellow-500/50"
+              />
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2">
           <button
             type="submit"

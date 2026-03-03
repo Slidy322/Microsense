@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LogIn, Mail, Lock, UserPlus } from 'lucide-react';
+import logoImage from 'figma:asset/70d7b13057d4930d6321036a9b91678683e15b84.png';
 
 interface LoginFormProps {
   onLogin: (email: string, password: string) => Promise<void>;
@@ -35,8 +36,8 @@ export function LoginForm({ onLogin, onSignup }: LoginFormProps) {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 p-4">
       <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl">
         <div className="text-center mb-8">
-          <div className="bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <LogIn size={32} className="text-white" />
+          <div className="flex items-center justify-center mx-auto mb-4">
+            <img src={logoImage} alt="MICROSENSE Logo" className="w-32 h-auto" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">
             MICROSENSE

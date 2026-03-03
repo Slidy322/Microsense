@@ -11,6 +11,7 @@ import { DataTable } from '@/app/components/DataTable';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { loadReports, loadUserReports, postReport, WeatherReport as SupabaseWeatherReport } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import logoImage from 'figma:asset/70d7b13057d4930d6321036a9b91678683e15b84.png';
 
 interface WeatherReport extends SupabaseWeatherReport {
   location: string;
@@ -200,7 +201,7 @@ export default function App() {
             <div className="flex items-start justify-between flex-wrap gap-4">
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
-                  <Cloud size={36} />
+                  <img src={logoImage} alt="MICROSENSE Logo" className="h-12 w-auto" />
                   MICROSENSE
                 </h1>
                 <p className="text-white/80">
@@ -258,8 +259,6 @@ export default function App() {
                     markers={mapMarkers}
                     ref={mapRef}
                   />
-                  {/* Data Table - Below the map */}
-                  <DataTable reports={weatherReports} />
                 </div>
 
                 {/* Left Column - Weather Submission Form (Second on mobile, left on desktop) */}
@@ -270,6 +269,9 @@ export default function App() {
                   />
                 </div>
               </div>
+
+              {/* Validation Data Table - Above Community Reports */}
+              <DataTable reports={weatherReports} />
 
               {/* Bottom Section - Community Reports */}
               <div className="mt-6">
