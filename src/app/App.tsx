@@ -1,19 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
 import { Cloud, Info, Home, History, Settings as SettingsIcon, BarChart3 } from 'lucide-react';
-import { WeatherSubmissionForm } from '@/app/components/WeatherSubmissionForm';
-import { GoogleMap, GoogleMapRef } from '@/app/components/GoogleMap';
-import { UserWeatherReports } from '@/app/components/UserWeatherReports';
-import { UserHistory } from '@/app/components/UserHistory';
-import { Settings } from '@/app/components/Settings';
-import { Dashboard } from '@/app/components/Dashboard';
-import { LoginForm } from '@/app/components/LoginForm';
-import { DataTable } from '@/app/components/DataTable';
-import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
+import { WeatherSubmissionForm } from './components/WeatherSubmissionForm';
+import { UserWeatherReports } from './components/UserWeatherReports';
+import { Dashboard } from './components/Dashboard';
+import { UserHistory } from './components/UserHistory';
+import { Settings } from './components/Settings';
+import { DataTable } from './components/DataTable';
+import { ReferenceDataInput } from './components/ReferenceDataInput';
+import { GoogleMap, type MapMarker } from './components/GoogleMap';
+import { LoginForm } from './components/LoginForm';
+import { ImageWithFallback } from './components/figma/ImageWithFallback';
 import { loadReports, loadUserReports, postReport, WeatherReport as SupabaseWeatherReport } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
 interface WeatherReport extends SupabaseWeatherReport {
   location: string;
+}
+
+interface GoogleMapRef {
+  centerOnLocation: (lat: number, lng: number) => void;
 }
 
 type TabType = 'home' | 'dashboard' | 'history' | 'settings';
@@ -25,6 +30,7 @@ export default function App() {
   const [userReports, setUserReports] = useState<WeatherReport[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [statusMessage, setStatusMessage] = useState('Loading reports...');
+  const [referenceData, setReferenceData] = useState<any>(null);
   const mapRef = useRef<GoogleMapRef>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
@@ -95,6 +101,12 @@ export default function App() {
   };
 
   const handleWeatherSubmit = async (data: any) => {
+    // Check if reference data has been submitted
+    if (!referenceData) {
+      alert('⚠️ Please submit reference data first before submitting your weather observation!');
+      return;
+    }
+
     try {
       setStatusMessage('Posting update...');
       
@@ -108,16 +120,19 @@ export default function App() {
         humidity: data.humidity,
         visibility: data.visibility,
         smell: data.smell,
-        // Reference data if provided
-        ref_condition: data.ref_condition,
-        ref_uv_index: data.ref_uv_index,
-        ref_temperature: data.ref_temperature,
-        ref_humidity: data.ref_humidity,
-        ref_visibility: data.ref_visibility,
-        ref_smell: data.ref_smell,
+        // Include reference data from the form
+        ref_condition: referenceData.ref_condition,
+        ref_uv_index: referenceData.ref_uv_index,
+        ref_temperature: parseFloat(referenceData.ref_temperature),
+        ref_humidity: parseInt(referenceData.ref_humidity),
+        ref_visibility: parseFloat(referenceData.ref_visibility),
+        ref_smell: referenceData.ref_smell,
       });
 
       setStatusMessage('Posted! Loading updates…');
+      
+      // Reset reference data after successful submission
+      setReferenceData(null);
       
       // Reload reports
       await fetchReports();
@@ -156,7 +171,7 @@ export default function App() {
   };
 
   // Prepare markers for map
-  const mapMarkers = weatherReports.map(report => ({
+  const mapMarkers: MapMarker[] = weatherReports.map(report => ({
     id: report.id,
     lat: report.lat,
     lng: report.lng,
@@ -258,9 +273,17 @@ export default function App() {
                   <WeatherSubmissionForm 
                     onSubmit={handleWeatherSubmit} 
                     onLocationChange={handleLocationChange}
+                    referenceDataReady={!!referenceData}
                   />
                 </div>
               </div>
+
+              {/* Reference Data Input - After Map */}
+              <ReferenceDataInput onSubmit={(refData) => {
+                console.log('Reference data submitted:', refData);
+                setReferenceData(refData);
+                // Handle reference data submission
+              }} />
 
               {/* Validation Data Table - Above Community Reports */}
               <DataTable reports={weatherReports} />
