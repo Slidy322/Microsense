@@ -457,7 +457,7 @@ export function Dashboard({ reports }: DashboardProps) {
               const weatherIcon = weatherIcons[cluster.weather] || '🌤️';
               
               return (
-                <div key={index} className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/20 hover:border-white/40 transition-all">
+                <div key={`${cluster.centerLat}-${cluster.centerLng}-${index}`} className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/20 hover:border-white/40 transition-all">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
