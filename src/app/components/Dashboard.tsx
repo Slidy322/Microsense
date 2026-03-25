@@ -371,12 +371,12 @@ export function Dashboard({ reports }: DashboardProps) {
       for (const cluster of clusterAverages) {
         try {
           const address = await reverseGeocode(cluster.centerLat, cluster.centerLng);
-          // Only set if we got a valid address, otherwise leave empty
-          if (address && address.length > 0) {
-            names[cluster.areaName] = address;
-          }
+          console.log(`Geocoding result for ${cluster.areaName}:`, address);
+          // Set the name if we got one
+          names[cluster.areaName] = address || `${cluster.centerLat.toFixed(4)}, ${cluster.centerLng.toFixed(4)}`;
         } catch (error) {
           console.error('Error fetching area name:', error);
+          names[cluster.areaName] = `${cluster.centerLat.toFixed(4)}, ${cluster.centerLng.toFixed(4)}`;
         }
       }
       
