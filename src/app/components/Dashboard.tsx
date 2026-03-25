@@ -1,5 +1,7 @@
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { CheckCircle, AlertCircle, TrendingUp, Activity } from 'lucide-react';
+import { CheckCircle, AlertCircle, TrendingUp, Activity, MapPin } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { reverseGeocode } from '@/lib/geocoding';
 
 interface WeatherReport {
   id: string;
@@ -11,6 +13,8 @@ interface WeatherReport {
   temperature?: number;
   humidity?: number;
   smell?: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface DashboardProps {
@@ -240,6 +244,147 @@ export function Dashboard({ reports }: DashboardProps) {
     },
   ];
 
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+  };
+
+  // Group reports by geographic clusters (2km radius)
+  const clusterRadius = 2; // km
+  const reportsWithLocation = reports.filter(r => r.lat && r.lng);
+  const clusters: Array<{
+    centerLat: number;
+    centerLng: number;
+    reports: typeof reportsWithLocation;
+    areaName: string;
+  }> = [];
+
+  reportsWithLocation.forEach(report => {
+    // Find if this report belongs to an existing cluster
+    let foundCluster = false;
+    for (const cluster of clusters) {
+      const distance = calculateDistance(report.lat!, report.lng!, cluster.centerLat, cluster.centerLng);
+      if (distance <= clusterRadius) {
+        cluster.reports.push(report);
+        foundCluster = true;
+        break;
+      }
+    }
+    
+    // If no cluster found, create a new one
+    if (!foundCluster) {
+      clusters.push({
+        centerLat: report.lat!,
+        centerLng: report.lng!,
+        reports: [report],
+        areaName: `Area ${clusters.length + 1}`,
+      });
+    }
+  });
+
+  // Calculate averages for each cluster
+  const clusterAverages = clusters.map(cluster => {
+    const clusterReports = cluster.reports;
+    
+    // Most common condition
+    const clusterConditions: Record<string, number> = {};
+    clusterReports.forEach(r => {
+      if (r.condition) {
+        clusterConditions[r.condition] = (clusterConditions[r.condition] || 0) + 1;
+      }
+    });
+    const clusterMostCommonCondition = Object.entries(clusterConditions)
+      .sort((a, b) => b[1] - a[1])[0];
+
+    // Most common UV
+    const clusterUvCounts: Record<string, number> = {};
+    clusterReports.forEach(r => {
+      if (r.uv_index !== undefined) {
+        clusterUvCounts[r.uv_index] = (clusterUvCounts[r.uv_index] || 0) + 1;
+      }
+    });
+    const clusterMostCommonUV = Object.entries(clusterUvCounts)
+      .sort((a, b) => b[1] - a[1])[0];
+
+    // Average temperature
+    const clusterTemps = clusterReports.filter(r => r.temperature !== undefined).map(r => r.temperature!);
+    const clusterAvgTemp = clusterTemps.length > 0 
+      ? (clusterTemps.reduce((a, b) => a + b, 0) / clusterTemps.length).toFixed(1)
+      : 'N/A';
+
+    // Average humidity
+    const clusterHumidities = clusterReports.filter(r => r.humidity !== undefined).map(r => r.humidity!);
+    const clusterAvgHumidity = clusterHumidities.length > 0 
+      ? (clusterHumidities.reduce((a, b) => a + b, 0) / clusterHumidities.length).toFixed(1)
+      : 'N/A';
+
+    // Average visibility
+    const clusterVisibilities = clusterReports.filter(r => r.visibility !== undefined).map(r => r.visibility!);
+    const clusterAvgVisibility = clusterVisibilities.length > 0 
+      ? (clusterVisibilities.reduce((a, b) => a + b, 0) / clusterVisibilities.length).toFixed(1)
+      : 'N/A';
+
+    // Most common smell
+    const clusterSmellCounts: Record<string, number> = {};
+    clusterReports.forEach(r => {
+      if (r.smell) {
+        clusterSmellCounts[r.smell] = (clusterSmellCounts[r.smell] || 0) + 1;
+      }
+    });
+    const clusterMostCommonSmell = Object.entries(clusterSmellCounts)
+      .sort((a, b) => b[1] - a[1])[0];
+
+    return {
+      areaName: cluster.areaName,
+      centerLat: cluster.centerLat,
+      centerLng: cluster.centerLng,
+      location: `${cluster.centerLat.toFixed(4)}, ${cluster.centerLng.toFixed(4)}`,
+      reportCount: clusterReports.length,
+      weather: clusterMostCommonCondition ? clusterMostCommonCondition[0] : 'N/A',
+      uvIntensity: clusterMostCommonUV ? `Level ${clusterMostCommonUV[0]}` : 'N/A',
+      temperature: clusterAvgTemp !== 'N/A' ? `${clusterAvgTemp}°C` : 'N/A',
+      humidity: clusterAvgHumidity !== 'N/A' ? `${clusterAvgHumidity}%` : 'N/A',
+      visibility: clusterAvgVisibility !== 'N/A' ? `${clusterAvgVisibility} km` : 'N/A',
+      smell: clusterMostCommonSmell ? clusterMostCommonSmell[0] : 'N/A',
+    };
+  }).sort((a, b) => b.reportCount - a.reportCount); // Sort by most reports first
+
+  // Reverse geocode cluster locations to get area names
+  const [clusterNames, setClusterNames] = useState<Record<string, string>>({});
+  const [loadingNames, setLoadingNames] = useState(false);
+
+  useEffect(() => {
+    const fetchAreaNames = async () => {
+      if (clusterAverages.length === 0) return;
+      
+      setLoadingNames(true);
+      const names: Record<string, string> = {};
+      
+      for (const cluster of clusterAverages) {
+        try {
+          const address = await reverseGeocode(cluster.centerLat, cluster.centerLng);
+          names[cluster.areaName] = address;
+        } catch (error) {
+          console.error('Error fetching area name:', error);
+          names[cluster.areaName] = cluster.areaName;
+        }
+      }
+      
+      setClusterNames(names);
+      setLoadingNames(false);
+    };
+
+    fetchAreaNames();
+  }, [clusterAverages.length]);
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-white mb-4">Dashboard Analytics</h2>
@@ -293,6 +438,71 @@ export function Dashboard({ reports }: DashboardProps) {
           ))}
         </div>
       </div>
+
+      {/* Weather by Location (2km Radius Clusters) */}
+      {clusterAverages.length > 0 && (
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
+          <h3 className="text-white font-semibold mb-4">📍 Weather by Location</h3>
+          <p className="text-white/70 text-sm mb-4">
+            Reports are grouped into geographic areas within a 2km radius. Each card shows the average weather conditions for that location.
+          </p>
+          {loadingNames && (
+            <p className="text-white/50 text-sm mb-4">Loading location names...</p>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {clusterAverages.map((cluster, index) => {
+              const locationName = clusterNames[cluster.areaName] || cluster.areaName;
+              const weatherIcon = weatherIcons[cluster.weather] || '🌤️';
+              
+              return (
+                <div key={index} className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/20 hover:border-white/40 transition-all">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <MapPin className="text-blue-400" size={16} />
+                        <h4 className="text-white font-bold text-lg">{locationName}</h4>
+                      </div>
+                      <p className="text-white/50 text-xs">{cluster.location}</p>
+                    </div>
+                    <div className="text-3xl">{weatherIcon}</div>
+                  </div>
+                  
+                  <div className="space-y-2 mt-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-white/70 text-sm">Reports:</span>
+                      <span className="text-white font-semibold">{cluster.reportCount}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white/70 text-sm">Weather:</span>
+                      <span className="text-white font-semibold">{cluster.weather}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white/70 text-sm">UV Intensity:</span>
+                      <span className="text-white font-semibold">{cluster.uvIntensity}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white/70 text-sm">Temperature:</span>
+                      <span className="text-white font-semibold">{cluster.temperature}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white/70 text-sm">Humidity:</span>
+                      <span className="text-white font-semibold">{cluster.humidity}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white/70 text-sm">Visibility:</span>
+                      <span className="text-white font-semibold">{cluster.visibility}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white/70 text-sm">Smell:</span>
+                      <span className="text-white font-semibold">{cluster.smell}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Weather Reports Last 7 Days */}
       <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
@@ -489,24 +699,6 @@ export function Dashboard({ reports }: DashboardProps) {
               </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Average Weather Data */}
-      <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
-        <h3 className="text-white font-semibold mb-4">Average Weather Data</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {averageWeatherData.map((item, index) => (
-            <div key={index} className="space-y-3">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="text-green-400 flex-shrink-0" size={24} />
-                <div>
-                  <p className="text-white/70 text-xs">{item.variable}</p>
-                  <p className="text-white font-semibold">{item.displayValue}</p>
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>
