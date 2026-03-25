@@ -25,14 +25,15 @@ note: TEXT
 
 ### Google Maps Configuration
 
-**Location:** `/src/app/components/GoogleMap.tsx`
+**Location:** `/src/app/components/GoogleMap.tsx` and `/src/lib/geocoding.ts`
 
 ```
 API Key: AIzaSyCCv3fMlFc7PxJXR4Y65zJTsxPbWxnpc8I
 ```
 
 **Required Google Cloud APIs:**
-- Maps JavaScript API
+- Maps JavaScript API (for displaying maps)
+- Geocoding API (for converting coordinates to place names)
 
 ---
 
@@ -77,7 +78,7 @@ CREATE POLICY "Allow anonymous select" ON reports
      ```
 5. Under "API restrictions":
    - Select "Restrict key"
-   - Check only: "Maps JavaScript API"
+   - Check only: "Maps JavaScript API" and "Geocoding API"
 6. Save changes
 
 ---
@@ -94,7 +95,7 @@ const SUPABASE_ANON_KEY = "YOUR_NEW_ANON_KEY";
 
 ### To Change Google Maps API Key:
 
-Edit `/src/app/components/GoogleMap.tsx`:
+Edit `/src/app/components/GoogleMap.tsx` and `/src/lib/geocoding.ts`:
 ```typescript
 export function GoogleMap({ 
   apiKey = 'YOUR_NEW_GOOGLE_MAPS_KEY',
