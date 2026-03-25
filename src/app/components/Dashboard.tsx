@@ -7,6 +7,10 @@ interface WeatherReport {
   created_at: string;
   visibility?: number;
   note?: string | null;
+  uv_index?: number;
+  temperature?: number;
+  humidity?: number;
+  smell?: string;
 }
 
 interface DashboardProps {
@@ -156,6 +160,86 @@ export function Dashboard({ reports }: DashboardProps) {
     ? `${mostActiveHour[0].padStart(2, '0')}:00 (${mostActiveHour[1]} reports)`
     : 'N/A';
 
+  // Calculate average weather data across all submissions
+  const reportsWithData = reports.filter(r => 
+    r.condition || r.uv_index || r.temperature || r.humidity || r.visibility || r.smell
+  );
+
+  // Get most common weather condition
+  const mostCommonCondition = Object.entries(conditionCounts)
+    .sort((a, b) => b[1] - a[1])[0];
+
+  // Calculate UV Intensity distribution (most common)
+  const uvCounts: Record<string, number> = {};
+  reportsWithData.forEach(r => {
+    if (r.uv_index !== undefined) {
+      const uvLevel = r.uv_index;
+      uvCounts[uvLevel] = (uvCounts[uvLevel] || 0) + 1;
+    }
+  });
+  const mostCommonUV = Object.entries(uvCounts)
+    .sort((a, b) => b[1] - a[1])[0];
+
+  // Calculate averages for numeric fields
+  const temperatures = reportsWithData.filter(r => r.temperature !== undefined).map(r => r.temperature!);
+  const avgTemperature = temperatures.length > 0 
+    ? (temperatures.reduce((a, b) => a + b, 0) / temperatures.length).toFixed(1)
+    : 'N/A';
+
+  const humidities = reportsWithData.filter(r => r.humidity !== undefined).map(r => r.humidity!);
+  const avgHumidity = humidities.length > 0 
+    ? (humidities.reduce((a, b) => a + b, 0) / humidities.length).toFixed(1)
+    : 'N/A';
+
+  const visibilities = reportsWithData.filter(r => r.visibility !== undefined).map(r => r.visibility!);
+  const avgVisibility = visibilities.length > 0 
+    ? (visibilities.reduce((a, b) => a + b, 0) / visibilities.length).toFixed(1)
+    : 'N/A';
+
+  // Calculate most common smell
+  const smellCounts: Record<string, number> = {};
+  reportsWithData.forEach(r => {
+    if (r.smell) {
+      smellCounts[r.smell] = (smellCounts[r.smell] || 0) + 1;
+    }
+  });
+  const mostCommonSmell = Object.entries(smellCounts)
+    .sort((a, b) => b[1] - a[1])[0];
+
+  // Prepare data for average weather chart
+  const averageWeatherData = [
+    {
+      variable: 'Weather',
+      value: mostCommonCondition ? mostCommonCondition[0] : 'N/A',
+      displayValue: mostCommonCondition ? `${mostCommonCondition[0]} (${mostCommonCondition[1]})` : 'N/A',
+    },
+    {
+      variable: 'UV Intensity',
+      value: mostCommonUV ? mostCommonUV[0] : 'N/A',
+      displayValue: mostCommonUV ? `Level ${mostCommonUV[0]} (${mostCommonUV[1]})` : 'N/A',
+    },
+    {
+      variable: 'Temperature',
+      value: avgTemperature,
+      displayValue: avgTemperature !== 'N/A' ? `${avgTemperature}°C` : 'N/A',
+    },
+    {
+      variable: 'Humidity',
+      value: avgHumidity,
+      displayValue: avgHumidity !== 'N/A' ? `${avgHumidity}%` : 'N/A',
+    },
+    {
+      variable: 'Visibility',
+      value: avgVisibility,
+      displayValue: avgVisibility !== 'N/A' ? `${avgVisibility} km` : 'N/A',
+    },
+    {
+      variable: 'Smell',
+      value: mostCommonSmell ? mostCommonSmell[0] : 'N/A',
+      displayValue: mostCommonSmell ? `${mostCommonSmell[0]} (${mostCommonSmell[1]})` : 'N/A',
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-white mb-4">Dashboard Analytics</h2>
@@ -194,6 +278,19 @@ export function Dashboard({ reports }: DashboardProps) {
               <CheckCircle className="text-green-400" size={32} />
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Average Weather Data - FIRST CHART */}
+      <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
+        <h3 className="text-white font-semibold mb-4">Average Weather Data Summary</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {averageWeatherData.map((item, index) => (
+            <div key={index} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <p className="text-white/60 text-xs uppercase tracking-wide mb-2">{item.variable}</p>
+              <p className="text-white text-xl font-bold">{item.displayValue}</p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -392,6 +489,24 @@ export function Dashboard({ reports }: DashboardProps) {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Average Weather Data */}
+      <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
+        <h3 className="text-white font-semibold mb-4">Average Weather Data</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {averageWeatherData.map((item, index) => (
+            <div key={index} className="space-y-3">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="text-green-400 flex-shrink-0" size={24} />
+                <div>
+                  <p className="text-white/70 text-xs">{item.variable}</p>
+                  <p className="text-white font-semibold">{item.displayValue}</p>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
