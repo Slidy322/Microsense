@@ -3,7 +3,7 @@ import { Database, CheckCircle } from 'lucide-react';
 
 interface ReferenceData {
   ref_condition: string;
-  ref_uv_index: string;
+  ref_uv_index: number;
   ref_temperature: string;
   ref_humidity: string;
   ref_visibility: string;
@@ -17,7 +17,7 @@ interface ReferenceDataInputProps {
 export function ReferenceDataInput({ onSubmit }: ReferenceDataInputProps) {
   const [formData, setFormData] = useState<ReferenceData>({
     ref_condition: 'Sunny',
-    ref_uv_index: 'Moderate',
+    ref_uv_index: 3,
     ref_temperature: '31',
     ref_humidity: '65',
     ref_visibility: '7',
@@ -34,9 +34,10 @@ export function ReferenceDataInput({ onSubmit }: ReferenceDataInputProps) {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: name === 'ref_uv_index' ? parseInt(value, 10) : value,
     });
   };
 
@@ -98,11 +99,17 @@ export function ReferenceDataInput({ onSubmit }: ReferenceDataInputProps) {
                     onChange={handleChange}
                     className="w-full bg-white/20 backdrop-blur-sm text-white text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-white/50"
                   >
-                    <option value="Low" className="bg-blue-600">Low</option>
-                    <option value="Moderate" className="bg-blue-600">Moderate</option>
-                    <option value="High" className="bg-blue-600">High</option>
-                    <option value="Very High" className="bg-blue-600">Very High</option>
-                    <option value="Extreme" className="bg-blue-600">Extreme</option>
+                    <option value="1" className="bg-blue-600">1 - Low</option>
+                    <option value="2" className="bg-blue-600">2 - Low</option>
+                    <option value="3" className="bg-blue-600">3 - Moderate</option>
+                    <option value="4" className="bg-blue-600">4 - Moderate</option>
+                    <option value="5" className="bg-blue-600">5 - Moderate</option>
+                    <option value="6" className="bg-blue-600">6 - High</option>
+                    <option value="7" className="bg-blue-600">7 - High</option>
+                    <option value="8" className="bg-blue-600">8 - Very High</option>
+                    <option value="9" className="bg-blue-600">9 - Very High</option>
+                    <option value="10" className="bg-blue-600">10 - Very High</option>
+                    <option value="11" className="bg-blue-600">11+ - Extreme</option>
                   </select>
                 </td>
               </tr>

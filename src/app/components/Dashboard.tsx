@@ -371,10 +371,12 @@ export function Dashboard({ reports }: DashboardProps) {
       for (const cluster of clusterAverages) {
         try {
           const address = await reverseGeocode(cluster.centerLat, cluster.centerLng);
-          names[cluster.areaName] = address;
+          // Only set if we got a valid address, otherwise leave empty
+          if (address && address.length > 0) {
+            names[cluster.areaName] = address;
+          }
         } catch (error) {
           console.error('Error fetching area name:', error);
-          names[cluster.areaName] = cluster.areaName;
         }
       }
       
@@ -538,12 +540,12 @@ export function Dashboard({ reports }: DashboardProps) {
             <Legend 
               wrapperStyle={{ color: 'white', paddingTop: '10px' }}
             />
-            <Bar dataKey="Sunny" stackId="a" fill="#FCD34D" name="☀️ Sunny" />
-            <Bar dataKey="Cloudy" stackId="a" fill="#94A3B8" name="☁️ Cloudy" />
-            <Bar dataKey="Rainy" stackId="a" fill="#3B82F6" name="🌧️ Rainy" />
-            <Bar dataKey="Windy" stackId="a" fill="#8B5CF6" name="🌬️ Windy" />
-            <Bar dataKey="Storm" stackId="a" fill="#6366F1" name="⛈️ Storm" />
-            <Bar dataKey="Flooding" stackId="a" fill="#06B6D4" name="🌊 Flooding" />
+            <Bar dataKey="Sunny" stackId="a" fill="#FCD34D" name="☀️ Sunny" key="bar-sunny" />
+            <Bar dataKey="Cloudy" stackId="a" fill="#94A3B8" name="☁️ Cloudy" key="bar-cloudy" />
+            <Bar dataKey="Rainy" stackId="a" fill="#3B82F6" name="🌧️ Rainy" key="bar-rainy" />
+            <Bar dataKey="Windy" stackId="a" fill="#8B5CF6" name="🌬️ Windy" key="bar-windy" />
+            <Bar dataKey="Storm" stackId="a" fill="#6366F1" name="⛈️ Storm" key="bar-storm" />
+            <Bar dataKey="Flooding" stackId="a" fill="#06B6D4" name="🌊 Flooding" key="bar-flooding" />
           </BarChart>
         </ResponsiveContainer>
       </div>

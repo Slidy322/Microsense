@@ -39,6 +39,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
       const priorities = [
         'neighborhood',
         'sublocality',
+        'sublocality_level_1',
         'locality',
         'administrative_area_level_3',
         'administrative_area_level_2'
@@ -57,7 +58,13 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
       // Fallback to formatted address if no specific component found
       if (!locationName) {
         // Get first part of formatted address (usually the most specific location)
-        locationName = result.formatted_address.split(',')[0];
+        const parts = result.formatted_address.split(',');
+        locationName = parts[0].trim();
+        
+        // If it's just a street address with number, try to get a better name
+        if (/^\d+/.test(locationName) && parts.length > 1) {
+          locationName = parts[1].trim();
+        }
       }
       
       // Cache the result
@@ -65,12 +72,12 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
       return locationName;
     }
     
-    // Fallback to coordinates if geocoding fails
-    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    // Return null if geocoding fails - we'll handle this in the UI
+    return '';
   } catch (error) {
     console.error('Reverse geocoding error:', error);
-    // Return coordinates as fallback
-    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    // Return empty string on error - we'll handle this in the UI
+    return '';
   }
 }
 

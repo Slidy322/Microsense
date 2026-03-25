@@ -256,7 +256,6 @@ export const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({ apiKey = 'A
       mapInstanceRef.current.setZoom(15);
       
       console.log('✅✅ User marker created successfully at:', position);
-      console.log('Marker visible:', marker.getVisible(), 'Map:', marker.getMap());
     } catch (error) {
       console.error('❌ Error updating user marker:', error);
     }
