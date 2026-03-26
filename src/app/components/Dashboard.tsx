@@ -446,7 +446,7 @@ export function Dashboard({ reports }: DashboardProps) {
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
           <h3 className="text-white font-semibold mb-4">📍 Weather by Location</h3>
           <p className="text-white/70 text-sm mb-4">
-            Reports are grouped into geographic areas within a 2km radius. Each card shows the average weather conditions for that location.
+            Each card shows the average weather conditions for that location.
           </p>
           {loadingNames && (
             <p className="text-white/50 text-sm mb-4">Loading location names...</p>

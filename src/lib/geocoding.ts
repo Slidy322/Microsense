@@ -53,55 +53,73 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
         console.log(`  Types:`, res.types);
       });
       
-      // Try to get a good location name from the results
-      const firstResult = result.results[0];
+      // Get the most detailed result (usually the first one with route/street_address type)
+      let bestResult = result.results[0];
       
-      // Look for neighborhood, locality, or sublocality
-      const addressComponents = firstResult.address_components;
-      let locationName = '';
+      // Try to find a result that includes a route (street name) for more detail
+      const routeResult = result.results.find(r => 
+        r.types.includes('route') || 
+        r.types.includes('street_address') ||
+        r.types.includes('premise')
+      );
       
-      console.log('📋 Address components:', addressComponents);
-      
-      // Priority order: neighborhood, sublocality, locality, administrative_area_level_3
-      const priorities = [
-        'neighborhood',
-        'sublocality',
-        'sublocality_level_1',
-        'locality',
-        'administrative_area_level_3',
-        'administrative_area_level_2'
-      ];
-      
-      for (const priority of priorities) {
-        const component = addressComponents?.find(c => 
-          c.types.includes(priority)
-        );
-        if (component) {
-          locationName = component.long_name;
-          console.log(`✨ Found location name from ${priority}:`, locationName);
-          break;
-        }
+      if (routeResult) {
+        bestResult = routeResult;
+        console.log('📍 Using result with street address:', bestResult.formatted_address);
+      } else {
+        console.log('📍 Using first result:', bestResult.formatted_address);
       }
       
-      // Fallback to formatted address if no specific component found
-      if (!locationName && firstResult.formatted_address) {
-        // Get first part of formatted address (usually the most specific location)
-        const parts = firstResult.formatted_address.split(',');
-        locationName = parts[0].trim();
-        
-        console.log('📝 Using formatted address parts:', parts);
-        
-        // If it's just a street address with number, try to get a better name
-        if (/^\d+/.test(locationName) && parts.length > 1) {
-          locationName = parts[1].trim();
+      // Parse the formatted address and take the relevant parts
+      // Example: "J. Palma Gil St, Poblacion District, Davao City, 8000 Davao del Sur, Philippines"
+      // We want: "J. Palma Gil St, Poblacion District, Davao City, Davao del Sur"
+      
+      const parts = bestResult.formatted_address.split(',').map(p => p.trim());
+      console.log('📝 Address parts:', parts);
+      
+      // Filter out: postal codes, Plus Codes, "Philippines", and empty parts
+      const filteredParts = parts.filter(part => {
+        // Skip Plus Codes (format like "66HQ+XWX", "3J95+WFQ", or longer codes)
+        // Plus Codes are alphanumeric with a "+" in the middle
+        if (/^[A-Z0-9]{2,8}\+[A-Z0-9]{2,3}$/i.test(part)) {
+          console.log('🚫 Skipping Plus Code:', part);
+          return false;
         }
         
-        console.log('🏷️ Final location name from formatted address:', locationName);
-      }
+        // Skip postal codes (4 digits, or patterns like "8000 Davao del Sur")
+        if (/^\d{4}$/.test(part)) return false;
+        
+        // Skip parts that start with postal code
+        if (/^\d{4}\s/.test(part)) {
+          // But extract the location name after the postal code
+          const match = part.match(/^\d{4}\s+(.+)$/);
+          if (match) {
+            // We'll handle this separately
+            return false;
+          }
+        }
+        
+        // Skip "Philippines"
+        if (part === 'Philippines') return false;
+        
+        return true;
+      });
       
-      if (!locationName) {
-        console.warn('⚠️ Could not extract location name, using empty string');
-      }
+      // Handle parts with postal codes embedded (e.g., "8000 Davao del Sur")
+      parts.forEach(part => {
+        const match = part.match(/^\d{4}\s+(.+)$/);
+        if (match) {
+          filteredParts.push(match[1]);
+        }
+      });
+      
+      // Remove duplicates while preserving order
+      const uniqueParts = Array.from(new Set(filteredParts));
+      
+      // Take first 4 parts maximum (Street, Barangay/District, City, Province)
+      const locationName = uniqueParts.slice(0, 4).join(', ');
+      
+      console.log('🎯 Final location name:', locationName);
       
       // Cache the result
       geocodeCache.set(cacheKey, locationName);
